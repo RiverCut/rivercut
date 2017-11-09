@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@types/node": "^8.0.50",
+    "deepstream.io": "^3.1.1",
     "typescript": "^2.6.1"
   }
 }

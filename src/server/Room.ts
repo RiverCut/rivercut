@@ -3,6 +3,8 @@ import { ServerState } from './ServerState';
 
 import { clearGameLoop, setGameLoop } from 'node-gameloop';
 
+import { pull } from 'lodash';
+
 export abstract class Room<T extends ServerState> {
 
   public roomName: string;
@@ -19,11 +21,13 @@ export abstract class Room<T extends ServerState> {
 
   constructor(
     protected ds: deepstreamIO.Client,
-    { roomId, roomName, onDispose }
+    { roomId, roomName, onDispose },
+    StateCreator: { new (): T }
   ) {
     this.roomId = roomId;
     this.roomName = roomName;
     this.disposeServerCallback = onDispose;
+    this.state = new StateCreator(this.ds, this.roomName);
   }
 
   public setGameLoopInterval(ms: number) {
@@ -40,7 +44,6 @@ export abstract class Room<T extends ServerState> {
   protected abstract onMessage(): void;
 
   protected onInit(): void {
-    this.state = new T(this.ds);
     this.state.onInit();
     this.restartGameloop();
   }

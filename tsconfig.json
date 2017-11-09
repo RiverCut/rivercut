@@ -15,6 +15,9 @@
     "typeRoots": [
       "node_modules/@types"
     ],
+    "types": [
+      "node_modules/deepstream.io-client-js/src/client.d.ts"
+    ],
     "lib": [
       "es2016",
       "dom"
