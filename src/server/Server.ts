@@ -13,7 +13,11 @@ export class Server {
 
   public roomsPerWorker: number = 1;
 
-  constructor({ roomsPerWorker } = {}) {
+  /**
+   * 
+   * @param {number} roomsPerWorker - the maximum number of rooms this server will hold
+   */
+  constructor({ roomsPerWorker } = { roomsPerWorker: 1 }) {
     this.roomsPerWorker = roomsPerWorker;
   }
 
