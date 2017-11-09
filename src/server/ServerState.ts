@@ -10,4 +10,5 @@ export abstract class ServerState {
   protected abstract onDispose(): void;
 
   // TODO on tick, sync state with records
+  // TODO @sync annotation
 }

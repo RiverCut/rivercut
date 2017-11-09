@@ -14,7 +14,7 @@ export class Server {
   public roomsPerWorker: number = 1;
 
   /**
-   * 
+   *
    * @param {number} roomsPerWorker - the maximum number of rooms this server will hold
    */
   constructor({ roomsPerWorker } = { roomsPerWorker: 1 }) {
