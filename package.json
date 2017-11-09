@@ -1,0 +1,28 @@
+{
+  "name": "rivercut",
+  "version": "0.0.1",
+  "description": "A game engine built around deepstream.io",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LandOfTheRair/rivercut.git"
+  },
+  "author": "Kyle Kemp <kyle@seiyria.com>",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/LandOfTheRair/rivercut/issues"
+  },
+  "homepage": "https://github.com/LandOfTheRair/rivercut#readme",
+  "dependencies": {
+    "deepstream.io-client-js": "^2.3.0",
+    "lodash": "^4.17.4",
+    "node-gameloop": "^0.1.4",
+    "rxjs": "^5.5.2"
+  },
+  "devDependencies": {
+    "@types/node": "^8.0.50",
+    "typescript": "^2.6.1"
+  }
+}
