@@ -27,7 +27,9 @@ export abstract class Room<T extends ServerState> {
     this.roomId = roomId;
     this.roomName = roomName;
     this.disposeServerCallback = onDispose;
-    this.state = new StateCreator(this.ds, this.roomName);
+
+    this.state = new StateCreator();
+    this.state.create(this.ds, this.roomName);
   }
 
   public setGameLoopInterval(ms: number) {

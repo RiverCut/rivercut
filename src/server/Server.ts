@@ -2,13 +2,14 @@
 import * as Deepstream from 'deepstream.io-client-js';
 import { Subject } from 'rxjs';
 import { Room } from './Room';
+import { ServerState } from './ServerState';
 
 export class Server {
 
   private _client: deepstreamIO.Client;
-  private roomHash: { [key: string]: Room } = {};
+  private roomHash: { [key: string]: Room<ServerState> } = {};
 
-  public connectionState$ = new Subject<deepstreamIO.ConnectionState>();
+  public connectionState$ = new Subject<string>();
   public error$ = new Subject<any>();
 
   public roomsPerWorker: number = 1;
@@ -33,8 +34,13 @@ export class Server {
   public init(url: string, options?: any): void {
     this._client = Deepstream(url, options);
 
-    this._client.on('connectionStateChanged', state => this.connectionState$.next(state));
-    this._client.on('error', (error, event, topic) => this.error$.next({ error, event, topic }));
+    this._client.on('connectionStateChanged', (state) => {
+      this.connectionState$.next(state);
+    });
+
+    this._client.on('error', (error, event, topic) => {
+      this.error$.next({ error, event, topic });
+    });
   }
 
   public login(opts: any): Promise<any> {
@@ -46,7 +52,7 @@ export class Server {
     });
   }
 
-  public registerRoom(roomName: string, roomProto: Room, opts?: any = {}): void {
+  public registerRoom(roomName: string, roomProto, opts: any = {}): void {
     if(this.roomHash[roomName]) throw new Error(`Room ${roomName} already exists on this node.`);
 
     const roomOpts = {

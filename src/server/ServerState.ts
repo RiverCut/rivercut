@@ -2,11 +2,15 @@
 export abstract class ServerState {
 
   private $$syncKeys: string[] = [];
+  protected ds: deepstreamIO.Client;
+  private $$baseKeyPath: string;
 
-  constructor(
-    protected ds: deepstreamIO.Client,
-    private $$baseKeyPath: string
-  ) {}
+  public create(ds, $$baseKeyPath) {
+    if(this.ds) throw new Error('Already created this ServerState');
+
+    this.ds = ds;
+    this.$$baseKeyPath = $$baseKeyPath;
+  }
 
   public tick(delta: number): void {
     this.sync();
