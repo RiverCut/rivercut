@@ -108,4 +108,10 @@ export class Server {
   // TODO on connect, setup the desired room and route the client to it, or just route the client to it if it exists
 
   // TODO use presence to watch for connections and route them accordingly
+
+  // TODO need to keep a map of clientUser <-> room instance(s) so they knows where to send updates
+
+  // TODO client state needs to have a "base path" sent to it so it knows what to watch
+
+  // TODO client state needs to extend from a model and it should have a basic deserialize function (_.extend, probably)
 }
