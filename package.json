@@ -2,8 +2,14 @@
   "name": "rivercut",
   "version": "0.0.1",
   "description": "A game engine built around deepstream.io",
+  "main": "./dist/index.js",
+  "typings": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc -d",
+    "prepublish": "npm run build",
+    "bump:patch": "npm version patch -m \"Patch release %s\"",
+    "bump:minor": "npm version minor -m \"Minor release %s\"",
+    "bump:major": "npm version major -m \"Major release %s\""
   },
   "repository": {
     "type": "git",

@@ -5,31 +5,30 @@ import { clearGameLoop, setGameLoop } from 'node-gameloop';
 
 import { pull } from 'lodash';
 
-export abstract class Room<T extends ServerState> {
+export abstract class Room<T extends ServerState = ServerState> {
 
   public roomName: string;
-  public opts: any = {};
   public state: T;
 
+  protected opts: any = {};
   protected runWhenEmpty: boolean;
   protected connectedClients: any[] = [];
 
+  private ds: deepstreamIO.Client;
+  private serverOpts: any = {};
   private roomId: string;
   private gameLoopInterval = 1000 / 30;
   private gameloop: number;
   private disposeServerCallback: Function;
 
-  constructor(
-    protected ds: deepstreamIO.Client,
-    { roomId, roomName, onDispose },
-    StateCreator: { new (): T }
-  ) {
+  public setup(ds: deepstreamIO.Client, { roomId, roomName, onDispose, serverOpts }) {
+    this.ds = ds;
     this.roomId = roomId;
     this.roomName = roomName;
     this.disposeServerCallback = onDispose;
+    this.serverOpts = serverOpts;
 
-    this.state = new StateCreator();
-    this.state.create(this.ds, this.roomName);
+    this.onSetup();
   }
 
   public setGameLoopInterval(ms: number) {
@@ -41,36 +40,57 @@ export abstract class Room<T extends ServerState> {
     return true;
   }
 
-  protected abstract tick(delta: number): void;
+  protected setState(state: T): void {
+    this.state = state;
+    this.state.setup(this.ds, this.serverOpts);
+  }
 
+  protected abstract onTick(delta: number): void;
+  protected abstract onConnect(clientId: string): void;
+  protected abstract onDisconnect(clientId: string): void;
+  protected abstract onInit(): void;
+  protected abstract onUninit(): void;
+  protected abstract onSetup(): void;
   protected abstract onMessage(): void;
+  protected abstract onDispose(): void;
 
-  protected onInit(): void {
-    this.state.onInit();
+  public init(): void {
+    this.onInit();
+    this.state.init();
     this.restartGameloop();
   }
 
-  protected onUninit(): void {
+  public uninit(): void {
     if(!this.gameloop) throw new Error('Cannot uninit() a room that has not been created');
-    this.state.onDispose();
+    this.onUninit();
+    this.state.uninit();
     delete this.state;
     clearGameLoop(this.gameloop);
 
+    this.dispose();
+  }
+
+  public connect(clientId: string) {
+    this.connectedClients.push(clientId);
+    this.onConnect(clientId);
+  }
+
+  public disconnect(clientId: string) {
+    pull(this.connectedClients, clientId);
+
+    this.onDisconnect(clientId);
+
+    if(!this.runWhenEmpty && this.connectedClients.length === 0) this.uninit();
+  }
+
+  private dispose() {
+    this.disposeServerCallback();
     this.onDispose();
   }
 
-  protected onConnect(clientId: string) {
-    this.connectedClients.push(clientId);
-  }
-
-  protected onDisconnect(clientId: string) {
-    pull(this.connectedClients, clientId);
-
-    if(!this.runWhenEmpty && this.connectedClients.length === 0) this.onUninit();
-  }
-
-  protected onDispose() {
-    this.disposeServerCallback();
+  private tick(delta: number) {
+    this.onTick(delta);
+    this.state.tick(delta);
   }
 
   private restartGameloop(): void {
@@ -78,7 +98,6 @@ export abstract class Room<T extends ServerState> {
 
     this.gameloop = setGameLoop(delta => {
       this.tick(delta);
-      this.state.tick(delta);
     }, this.gameLoopInterval);
   }
 }
