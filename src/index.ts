@@ -1,8 +1,7 @@
 
 export * from './client/ClientState';
 
-export * from './decorators/syncfrom';
-export * from './decorators/syncto';
+export * from './decorators/sync';
 
 export * from './server/Room';
 export * from './server/Server';

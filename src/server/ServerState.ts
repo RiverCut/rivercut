@@ -2,6 +2,7 @@
 export abstract class ServerState {
 
   private $$syncKeys: string[];
+  private $$syncModels: { [key: string]: any } = {};
   private ds: deepstreamIO.Client;
 
   // used for state path
@@ -43,6 +44,17 @@ export abstract class ServerState {
       const baseRecordPath = `${this.statePath}/${key}`;
       const baseRecord = this.ds.record.getRecord(baseRecordPath);
       baseRecord.whenReady(record => {
+
+        // try to deserialize it if we can
+        const deserializeModel = this.$$syncModels[key];
+        if(deserializeModel) {
+          const model = new deserializeModel();
+          model.deserializeFrom(record.get());
+          this[key] = model;
+          return;
+        }
+
+        // otherwise just set it to the plain object
         this[key] = record.get() || baseValue;
       });
     });
