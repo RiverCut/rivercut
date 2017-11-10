@@ -8,6 +8,11 @@ A game engine built around deepstream.io.
 - Promise wrappers for deepstream functions where applicable
 - Observable wrappers for deepstream events where applicable
 
+## Installation
+```
+npm i rivercut
+```
+
 ## Usage
 Coming soon.
 
