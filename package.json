@@ -6,7 +6,7 @@
   "typings": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc -d",
-    "prepublish": "npm run build",
+    "prepare": "npm run build",
     "bump:patch": "npm version patch -m \"Patch release %s\"",
     "bump:minor": "npm version minor -m \"Minor release %s\"",
     "bump:major": "npm version major -m \"Major release %s\""
@@ -25,7 +25,8 @@
     "deepstream.io-client-js": "^2.3.0",
     "lodash": "^4.17.4",
     "node-gameloop": "^0.1.4",
-    "rxjs": "^5.5.2"
+    "rxjs": "^5.5.2",
+    "uuid": "^3.1.0"
   },
   "devDependencies": {
     "@types/node": "^8.0.50",

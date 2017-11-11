@@ -1,14 +1,13 @@
 
-import * as Deepstream from 'deepstream.io-client-js';
-import { Subject } from 'rxjs';
+import * as uuid from 'uuid/v4';
+import * as uuid5 from 'uuid/v5';
 
-export class Server {
+import { DeepstreamWrapper } from '../shared/DeepstreamWrapper';
 
-  private _client: deepstreamIO.Client;
+export class Server extends DeepstreamWrapper {
+
   private roomHash: any = {};
-
-  public connectionState$ = new Subject<string>();
-  public error$ = new Subject<any>();
+  private serverUUID: string;
 
   public roomsPerWorker: number = 1;
   public resetStatesOnReboot: boolean = true;
@@ -29,51 +28,30 @@ export class Server {
       namespace
     }: any = {}
     ) {
+      super();
       this.roomsPerWorker = roomsPerWorker || 1;
       this.resetStatesOnReboot = resetStatesOnReboot || true;
       this.serializeByRoomId = serializeByRoomId || false;
       this.namespace = namespace || '';
     }
 
-  public get client(): deepstreamIO.Client {
-    if(!this._client) throw new Error('No client exists, call init() first');
-    return this._client;
-  }
-
-  public get uid(): string {
-    return this._client.getUid();
-  }
-
   public init(url: string, options?: any): void {
-    this._client = Deepstream(url, options);
+    super.init(url, options);
+
+    this.serverUUID = uuid();
 
     if(this.resetStatesOnReboot) {
-      const record = this._client.record.getRecord(this.namespace);
+      const record = this.client.record.getRecord(this.namespace);
       record.delete();
     }
 
-    this._client.on('connectionStateChanged', (state) => {
-      this.connectionState$.next(state);
-    });
-
-    this._client.on('error', (error, event, topic) => {
-      this.error$.next({ error, event, topic });
-    });
-  }
-
-  public login(opts: any): Promise<any> {
-    return new Promise((resolve, reject) => {
-      this._client.login(opts, (success, data) => {
-        if(success) return resolve(data);
-        return reject(data);
-      });
-    });
+    this.trackPresence();
   }
 
   public registerRoom(roomName: string, roomProto, opts: any = {}): void {
     if(this.roomHash[roomName]) throw new Error(`Room ${roomName} already exists on this node.`);
 
-    const roomId = Object.keys(this.roomHash).length + 1;
+    const roomId = uuid5(roomName, this.serverUUID);
 
     const roomOpts = {
       roomId,
@@ -101,6 +79,12 @@ export class Server {
 
   public async canConnect(): Promise<boolean> {
     return Object.keys(this.roomHash).length < this.roomsPerWorker;
+  }
+
+  private trackPresence() {
+    this.client.presence.subscribe((username, isLoggedIn) => {
+      console.log(username, isLoggedIn);
+    });
   }
 
   // TODO check if can connect - server either needs to contain the desired room or the server, or there needs to be enough space to make a room
