@@ -8,6 +8,7 @@ export class Server extends DeepstreamWrapper {
 
   private roomHash: any = {};
   private serverUUID: string;
+  private actionCallbacks: { [key: string]: Function } = {};
 
   public roomsPerWorker: number = 1;
   public resetStatesOnReboot: boolean = true;
@@ -46,6 +47,7 @@ export class Server extends DeepstreamWrapper {
     }
 
     this.trackPresence();
+    this.watchForBasicEvents();
   }
 
   public registerRoom(roomName: string, roomProto, opts: any = {}): void {
@@ -77,13 +79,39 @@ export class Server extends DeepstreamWrapper {
     delete this.roomHash[roomName];
   }
 
+  public on(name: string, callback: (data: any, response: deepstreamIO.RPCResponse) => any): void {
+    if(!this.client) throw new Error('Client not initialized');
+    this.actionCallbacks[name] = callback;
+  }
+
+  public off(name): void {
+    this.client.rpc.unprovide(name);
+  }
+
   public async canConnect(): Promise<boolean> {
     return Object.keys(this.roomHash).length < this.roomsPerWorker;
   }
 
-  private trackPresence() {
+  private trackPresence(): void {
     this.client.presence.subscribe((username, isLoggedIn) => {
       console.log(username, isLoggedIn);
+    });
+  }
+
+  private watchForBasicEvents(): void {
+    this.client.rpc.provide('user/action', (data, response) => {
+      const callback = this.actionCallbacks[data.$$action];
+      if(!callback) {
+        response.error(`Action ${data.$$action} has no registered callback.`);
+        return;
+      }
+
+      const result = callback(data, response);
+      response.send(result);
+    });
+
+    this.on('join', (data) => {
+      console.log(data);
     });
   }
 

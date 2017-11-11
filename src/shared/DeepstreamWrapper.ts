@@ -41,4 +41,21 @@ export abstract class DeepstreamWrapper {
       });
     });
   }
+
+  public emit(name, data): Promise<any> {
+    if(!this._client) throw new Error('Client not initialized');
+
+    const emitData = {
+      $$userId: this.uid,
+      $$action: name,
+      ...data
+    };
+
+    return new Promise((resolve, reject) => {
+      this._client.rpc.make('user/action', emitData, (error, result) => {
+        if(error) return reject(error);
+        resolve(result);
+      });
+    });
+  }
 }

@@ -1,4 +1,5 @@
 
+export * from './client/Client';
 export * from './client/ClientState';
 
 export * from './decorators/sync';
