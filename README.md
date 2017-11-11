@@ -38,6 +38,14 @@ You can either host your own deepstream instance, or sign up for deepstreamHub.
 
 ### Permissions
 
+You'll need to generate a token and allow token authentication. The token should have this for the server data:
+
+```json
+{
+    "hasAuthority": true
+}
+```
+
 You'll need to have your deepstream permissions set up differently for this to all work right:
 
 ```yml
@@ -46,14 +54,14 @@ presence:
     allow: true
 record:
   "*":
-    create: true
-    write: true
+    create: "user.data.hasAuthority"
+    write: "user.data.hasAuthority"
     read: true
-    delete: true
+    delete: "user.data.hasAuthority"
     listen: true
 event:
   "*":
-    publish: true
+    publish: "user.data.hasAuthority"
     subscribe: true
     listen: true
 rpc:

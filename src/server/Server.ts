@@ -110,7 +110,11 @@ export class Server extends DeepstreamWrapper {
       response.send(result);
     });
 
-    this.on('join', (data) => {
+    this.on('rivercut:join', (data) => {
+      console.log(data);
+    });
+
+    this.on('rivercut:leave', (data) => {
       console.log(data);
     });
   }
