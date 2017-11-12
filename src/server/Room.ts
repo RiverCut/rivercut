@@ -3,7 +3,7 @@ import { ServerState } from './ServerState';
 
 import { clearGameLoop, setGameLoop } from 'node-gameloop';
 
-import { pull, isUndefined } from 'lodash';
+import { pull, isUndefined, difference } from 'lodash';
 
 export abstract class Room<T extends ServerState = ServerState> {
 
@@ -109,11 +109,12 @@ export abstract class Room<T extends ServerState = ServerState> {
     }, this.gameLoopInterval);
   }
 
-  public sendMessage(clientId: string, message: Object) {
+  public sendMessage(clientId: string, message: Object): void {
     this.ds.event.emit(`message/${clientId}`, message);
   }
 
-  public broadcast(message: Object) {
-    this.connectedClients.forEach(client => this.sendMessage(client, message));
+  public broadcast(message: Object, exclude: string[] = []): void {
+    const recipients = difference(this.connectedClients, exclude);
+    recipients.forEach(client => this.sendMessage(client, message));
   }
 }
