@@ -116,7 +116,7 @@ export class Server extends DeepstreamWrapper {
   }
 
   private hasRunningRoom(roomName: string): boolean {
-    return this.runningRooms[roomName] && Object.keys(this.runningRooms[roomName]).length > 0;
+    return this.runningRoomHash[roomName] && Object.keys(this.runningRoomHash[roomName]).length > 0;
   }
 
   private isFull(): boolean {
