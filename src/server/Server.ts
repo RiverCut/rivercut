@@ -7,9 +7,6 @@ import { find, filter } from 'lodash';
 import { DeepstreamWrapper } from '../shared/DeepstreamWrapper';
 import { Room } from 'server/Room';
 
-// TODO need to keep a map of clientUser <-> room instance(s) so they knows where to send updates
-// TODO ^ rooms need to know about clientRooms
-
 export class Server extends DeepstreamWrapper {
 
   private roomHash: any = {};
