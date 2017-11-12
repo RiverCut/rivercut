@@ -66,8 +66,8 @@ event:
     listen: true
 rpc:
   "*":
-    provide: true
+    provide: "user.data.hasAuthority"
     request: true
-  user/action:
-    request: "data.id === user.id" 
+  useraction:
+    request: "data.$$userId === user.id" 
 ```

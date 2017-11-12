@@ -3,11 +3,10 @@ import { ServerState } from './ServerState';
 
 import { clearGameLoop, setGameLoop } from 'node-gameloop';
 
-import { pull } from 'lodash';
+import { pull, isUndefined } from 'lodash';
 
 export abstract class Room<T extends ServerState = ServerState> {
 
-  public roomName: string;
   public state: T;
 
   protected opts: any = {};
@@ -16,10 +15,19 @@ export abstract class Room<T extends ServerState = ServerState> {
 
   private ds: deepstreamIO.Client;
   private serverOpts: any = {};
-  private roomId: string;
   private gameLoopInterval = 1000 / 30;
   private gameloop: number;
   private disposeServerCallback: Function;
+  private roomId: string;
+  private roomName: string;
+
+  public get id(): string {
+    return this.roomId;
+  }
+
+  public get name(): string {
+    return this.roomName;
+  }
 
   public setup(ds: deepstreamIO.Client, { roomId, roomName, onDispose, serverOpts }) {
     this.ds = ds;
@@ -61,7 +69,7 @@ export abstract class Room<T extends ServerState = ServerState> {
   }
 
   public uninit(): void {
-    if(!this.gameloop) throw new Error('Cannot uninit() a room that has not been created');
+    if(isUndefined(this.gameloop)) throw new Error('Cannot uninit() a room that has not been created');
     this.onUninit();
     this.state.uninit();
     delete this.state;
@@ -94,7 +102,7 @@ export abstract class Room<T extends ServerState = ServerState> {
   }
 
   private restartGameloop(): void {
-    if(this.gameloop) clearGameLoop(this.gameloop);
+    if(!isUndefined(this.gameloop)) clearGameLoop(this.gameloop);
 
     this.gameloop = setGameLoop(delta => {
       this.tick(delta);

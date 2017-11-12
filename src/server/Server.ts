@@ -2,7 +2,7 @@
 import * as uuid from 'uuid/v4';
 import * as uuid5 from 'uuid/v5';
 
-import { find } from 'lodash';
+import { find, filter } from 'lodash';
 
 import { DeepstreamWrapper } from '../shared/DeepstreamWrapper';
 import { Room } from 'server/Room';
@@ -17,6 +17,7 @@ export class Server extends DeepstreamWrapper {
   private runningRooms: number = 0;
   private serverUUID: string;
   private actionCallbacks: { [key: string]: (data: any, response: deepstreamIO.RPCResponse) => any } = {};
+  private clientRooms: { [key: string]: Array<{ name: string, id: string }> } = {};
 
   public roomsPerWorker: number = 1;
   public resetStatesOnReboot: boolean = true;
@@ -55,6 +56,7 @@ export class Server extends DeepstreamWrapper {
     }
 
     this.watchForBasicEvents();
+    this.trackPresence();
   }
 
   public registerRoom(roomName: string, roomProto, opts: any = {}): void {
@@ -118,16 +120,19 @@ export class Server extends DeepstreamWrapper {
   }
 
   private isFull(): boolean {
-    return this.runningRooms < this.roomsPerWorker;
+    return this.runningRooms >= this.roomsPerWorker;
   }
 
   private findRoomToConnectTo(roomName: string, userId: string): Promise<Room> {
     return new Promise(async (resolve) => {
-      const allRooms = this.runningRooms[roomName];
+      const roomHash = this.runningRoomHash;
+      const allRooms = Object.keys(roomHash[roomName]) || [];
+
+      if(!allRooms.length) return resolve(null);
 
       function* nextRoom() {
         for(let i = 0; i < allRooms.length; i++) {
-          yield allRooms[i];
+          yield roomHash[roomName][allRooms[i]];
         }
       }
 
@@ -136,7 +141,7 @@ export class Server extends DeepstreamWrapper {
       let chosenRoom = null;
 
       for(const currentRoom of gen) {
-        const canJoin = await currentRoom.canConnect(userId);
+        const canJoin = await currentRoom.canJoin(userId);
         if(canJoin) {
           chosenRoom = currentRoom;
           break;
@@ -148,7 +153,8 @@ export class Server extends DeepstreamWrapper {
   }
 
   private watchForBasicEvents(): void {
-    this.client.rpc.provide('user/action', async (data, response) => {
+
+    this.client.rpc.provide('useraction', async (data, response) => {
       const callback = this.actionCallbacks[data.$$action];
       if(!callback) {
         response.error(`Action ${data.$$action} has no registered callback.`);
@@ -156,63 +162,143 @@ export class Server extends DeepstreamWrapper {
       }
 
       const result = await callback(data, response);
+
+      if(!result) return;
       response.send(result);
     });
 
-    this.on('rivercut:join', async (data, response) => {
+    this.on('rivercut:join', (data, response) => {
       const { room, $$userId } = data;
 
       (<any>response).autoAck = false;
 
-      if(this.isFull()) {
-        // if we don't have a running room, and we're full, there is nowhere to go
-        const hasRunningRoom = this.hasRunningRoom(room);
-        if(!hasRunningRoom) return response.reject();
+      return new Promise(async (resolve) => {
 
-        // if we don't have a room to connect to, and we're full, there is nowhere to go
+        const ackAndReject = () => {
+          response.ack();
+          response.reject();
+
+          resolve(null);
+        };
+
+        const getResponseData = (room) => {
+          const resolveData = {
+            statePath: room.state.statePath
+          };
+
+          resolve(resolveData);
+        };
+
+        const sendError = (message: string) => {
+          response.error(message);
+
+          resolve(null);
+        };
+
+        if(this.isFull()) {
+          // if we don't have a running room, and we're full, there is nowhere to go
+          const hasRunningRoom = this.hasRunningRoom(room);
+          if(!hasRunningRoom) return ackAndReject();
+
+          // if we don't have a room to connect to, and we're full, there is nowhere to go
+          const roomInst = await this.findRoomToConnectTo(room, $$userId);
+          if(!roomInst) return ackAndReject();
+
+          response.ack();
+
+          // we can connect to a room, so let's try to do that.
+          const didJoin = this.joinRoom($$userId, roomInst);
+          if(!didJoin) return sendError('Could not join room');
+
+          return getResponseData(roomInst);
+        }
+
+        let isRoomFreshlyCreated = false;
+        let newRoom: Room = null;
+
+        // ok, we're not full, so lets see if we have a room anyway
+        const hasRunningRoom = this.hasRunningRoom(room);
+        if(!hasRunningRoom) {
+          // create a room, we'll see if we can join it
+          newRoom = this.createRoom(room);
+        }
+
+        // if we don't have a room to connect to, we can make one
         const roomInst = await this.findRoomToConnectTo(room, $$userId);
-        if(!roomInst) return response.reject();
+
+        if(!roomInst) {
+
+          // if we can't join anything and we just made a room, get rid of it
+          if(newRoom && isRoomFreshlyCreated) newRoom.uninit();
+
+          return ackAndReject();
+        }
 
         response.ack();
 
-        // we can connect to a room, so let's do that.
-        roomInst.connect($$userId);
-        return;
-      }
+        // ok, we have a room, we can try to join it
+        const didJoin = this.joinRoom($$userId, roomInst);
+        if(!didJoin) return sendError('Could not join room');
 
-      let isRoomFreshlyCreated = false;
-      let newRoom: Room = null;
-
-      // ok, we're not full, so lets see if we have a room anyway
-      const hasRunningRoom = this.hasRunningRoom(room);
-      if(!hasRunningRoom) {
-        // create a room, we'll see if we can join it
-        newRoom = this.createRoom(room);
-      }
-
-      // if we don't have a room to connect to, we can make one
-      const roomInst = await this.findRoomToConnectTo(room, $$userId);
-      if(!roomInst) {
-
-        // if we can't join anything and we just made a room, get rid of it
-        if(newRoom && isRoomFreshlyCreated) newRoom.uninit();
-
-        response.reject();
-        return;
-      }
-
-      response.ack();
-
-      // ok, we have a room, we can join it
-      roomInst.connect($$userId);
-
-      response.send({
-        statePath: roomInst.state.statePath
-      });
+        return getResponseData(roomInst);
+      })
     });
 
-    this.on('rivercut:leave', (data) => {
-      console.log(data);
+    this.on('rivercut:leave', (data, response) => {
+      const { $$userId, room } = data;
+
+      const didLeave = this.leaveRoom($$userId, room);
+      if(!didLeave) return response.error('Could not leave room');
+
+      return {};
     });
+  }
+
+  private trackPresence(): void {
+    this.client.presence.subscribe((userId, isOnline) => {
+      if(!isOnline) {
+        this.leaveAllRooms(userId);
+      }
+    });
+  }
+
+  private joinRoom(clientId: string, room: Room): boolean {
+    const alreadyInRoom = find(this.clientRooms[clientId], { name: room.name, id: room.id });
+    if(alreadyInRoom) return false;
+
+    room.connect(clientId);
+
+    this.clientRooms[clientId] = this.clientRooms[clientId] || [];
+    this.clientRooms[clientId].push({ name: room.name, id: room.id });
+    return true;
+  }
+
+  private leaveRoom(clientId: string, roomName: string): boolean {
+    if(!this.clientRooms[clientId]) return false;
+
+    let didLeave = false;
+
+    this.clientRooms[clientId].forEach(({ name, id }) => {
+      if(name !== roomName) return;
+
+      const room = this.runningRoomHash[name][id];
+      room.disconnect(clientId);
+      didLeave = true;
+    });
+
+    this.clientRooms[clientId] = filter(this.clientRooms[clientId], ({ name }) => name !== roomName);
+
+    return didLeave;
+  }
+
+  private leaveAllRooms(clientId: string) {
+    if(!this.clientRooms[clientId]) return;
+
+    this.clientRooms[clientId].forEach(({ name, id }) => {
+      const room = this.runningRoomHash[name][id];
+      room.disconnect(clientId);
+    });
+
+    delete this.clientRooms[clientId];
   }
 }
