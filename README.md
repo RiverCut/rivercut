@@ -64,10 +64,13 @@ event:
     publish: "user.data.hasAuthority"
     subscribe: true
     listen: true
+  "message/$userId":
+    publish: "user.data.hasAuthority"
+    subscribe: "user.id === $userId"
 rpc:
   "*":
     provide: "user.data.hasAuthority"
     request: true
-  useraction:
+  "useraction":
     request: "data.$$userId === user.id" 
 ```

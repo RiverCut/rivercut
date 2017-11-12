@@ -108,4 +108,12 @@ export abstract class Room<T extends ServerState = ServerState> {
       this.tick(delta);
     }, this.gameLoopInterval);
   }
+
+  public sendMessage(clientId: string, message: Object) {
+    this.ds.event.emit(`message/${clientId}`, message);
+  }
+
+  public broadcast(message: Object) {
+    this.connectedClients.forEach(client => this.sendMessage(client, message));
+  }
 }
