@@ -10,7 +10,7 @@ export abstract class ServerState {
   private $$serverNamespace: string;
   private $$roomId: boolean;
 
-  private get statePath(): string {
+  public get statePath(): string {
     let base = ``;
     if(this.$$serverNamespace)  base = `${this.$$serverNamespace}`;
     if(this.$$roomId)           base = `${base}/${this.$$roomId}`;

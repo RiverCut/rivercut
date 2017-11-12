@@ -15,3 +15,5 @@ export function sync(model: any) {
     target.prototype.$$syncModels[key] = model;
   }
 }
+
+// TODO sync should create a getter/setter (maybe have a thing that disables sets?) and auto-sync to the corresponding record instead of manually syncing

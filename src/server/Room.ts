@@ -36,7 +36,7 @@ export abstract class Room<T extends ServerState = ServerState> {
     this.restartGameloop();
   }
 
-  public async canJoin(): Promise<boolean> {
+  public async canJoin(userId: string): Promise<boolean> {
     return true;
   }
 

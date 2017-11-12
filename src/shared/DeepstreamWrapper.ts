@@ -24,18 +24,18 @@ export abstract class DeepstreamWrapper {
 
     this._client = Deepstream(url, options);
 
-    this._client.on('connectionStateChanged', (state) => {
+    this.client.on('connectionStateChanged', (state) => {
       this.connectionState$.next(state);
     });
 
-    this._client.on('error', (error, event, topic) => {
+    this.client.on('error', (error, event, topic) => {
       this.error$.next({ error, event, topic });
     });
   }
 
   public login(opts: any): Promise<any> {
     return new Promise((resolve, reject) => {
-      this._client.login(opts, (success, data) => {
+      this.client.login(opts, (success, data) => {
         if(success) return resolve(data);
         return reject(data);
       });
@@ -43,8 +43,6 @@ export abstract class DeepstreamWrapper {
   }
 
   public emit(name, data): Promise<any> {
-    if(!this._client) throw new Error('Client not initialized');
-
     const emitData = {
       $$userId: this.uid,
       $$action: name,
@@ -52,7 +50,7 @@ export abstract class DeepstreamWrapper {
     };
 
     return new Promise((resolve, reject) => {
-      this._client.rpc.make('user/action', emitData, (error, result) => {
+      this.client.rpc.make('user/action', emitData, (error, result) => {
         if(error) return reject(error);
         resolve(result);
       });
