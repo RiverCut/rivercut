@@ -12,6 +12,9 @@ export abstract class ServerState {
   private $$serverNamespace: string;
   private $$roomId: boolean;
 
+  // used to know when all models have loaded
+  private canSync: boolean;
+
   public get statePath(): string {
     let base = ``;
     if(this.$$serverNamespace)  base = `${this.$$serverNamespace}`;
@@ -40,30 +43,40 @@ export abstract class ServerState {
   }
 
   public init(): void {
-    const syncKeys = get(this, 'prototype.$$syncKeys', []);
+    const syncKeys = get(this, '$$syncKeys', []);
 
-    syncKeys.forEach(key => {
-      const baseValue = this[key];
+    const syncPromises = syncKeys.map(key => {
+      return new Promise(resolve => {
+        const baseValue = this[key];
 
-      const baseRecordPath = `${this.statePath}/${key}`;
-      const baseRecord = this.ds.record.getRecord(baseRecordPath);
-      baseRecord.whenReady(record => {
+        const baseRecordPath = `${this.statePath}/${key}`;
+        const baseRecord = this.ds.record.getRecord(baseRecordPath);
+        baseRecord.whenReady(record => {
 
-        // try to deserialize it if we can
-        const deserializeModel = this.$$syncModels[key];
-        if(deserializeModel) {
-          const model = new deserializeModel();
-          model.deserializeFrom(record.get());
-          this[key] = model;
-          return;
-        }
+          const recordData = record.get();
 
-        // otherwise just set it to the plain object
-        this[key] = record.get() || baseValue;
+          // try to deserialize it if we can
+          const deserializeModel = this.$$syncModels[key];
+          if(deserializeModel) {
+            const model = new deserializeModel();
+            model.deserializeFrom(recordData);
+            this[key] = model;
+            return resolve();
+          }
+
+          // otherwise just set it to the plain object
+          this[key] = recordData || baseValue;
+          resolve();
+        });
       });
     });
 
-    this.onInit();
+    Promise.all(syncPromises)
+      .then(() => {
+        this.canSync = true;
+        this.onInit();
+      });
+
   };
 
   public uninit(): void {
@@ -71,6 +84,7 @@ export abstract class ServerState {
   }
 
   private syncSpecificKey(key: string) {
+    if(!this.canSync) return;
     const baseRecordPath = `${this.statePath}/${key}`;
     const baseRecord = this.ds.record.getRecord(baseRecordPath);
     baseRecord.set(this[key]);

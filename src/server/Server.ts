@@ -37,7 +37,7 @@ export class Server extends DeepstreamWrapper {
     ) {
       super();
       this.roomsPerWorker = roomsPerWorker || 1;
-      this.resetStatesOnReboot = resetStatesOnReboot || true;
+      this.resetStatesOnReboot = resetStatesOnReboot || false;
       this.serializeByRoomId = serializeByRoomId || false;
       this.namespace = namespace || '';
     }
@@ -164,6 +164,7 @@ export class Server extends DeepstreamWrapper {
       response.send(result);
     });
 
+    // TODO make it so single instance rooms can be specified! if so, there should be another RPC here that checks if the room exists anywhere else before creating it
     this.on('rivercut:join', (data, response) => {
       const { room, $$userId } = data;
 
