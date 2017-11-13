@@ -1,8 +1,10 @@
 
+import { get } from 'lodash';
+
 export abstract class ServerState {
 
   private $$syncKeys: string[];
-  private $$syncModels: { [key: string]: any } = {};
+  private $$syncModels: { [key: string]: any };
   private ds: deepstreamIO.Client;
 
   // used for state path
@@ -38,7 +40,9 @@ export abstract class ServerState {
   }
 
   public init(): void {
-    (<any>this).prototype.$$syncKeys.forEach(key => {
+    const syncKeys = get(this, 'prototype.$$syncKeys', []);
+
+    syncKeys.forEach(key => {
       const baseValue = this[key];
 
       const baseRecordPath = `${this.statePath}/${key}`;
@@ -66,12 +70,22 @@ export abstract class ServerState {
     this.onUninit();
   }
 
+  private syncSpecificKey(key: string) {
+    const baseRecordPath = `${this.statePath}/${key}`;
+    const baseRecord = this.ds.record.getRecord(baseRecordPath);
+    baseRecord.set(this[key]);
+  }
+
   protected sync(): void {
-    (<any>this).prototype.$$syncKeys.forEach(key => {
-      const baseRecordPath = `${this.statePath}/${key}`;
-      const baseRecord = this.ds.record.getRecord(baseRecordPath);
-      baseRecord.set(this[key]);
+    this.$$syncKeys.forEach(key => {
+      this.syncSpecificKey(key);
     });
+  }
+
+  // it would be nice if this could sync manually in the setter for MANUAL
+  protected forceSyncKey(key: string): void {
+    this[key] = this[key];
+    this.syncSpecificKey(key);
   }
 
 }

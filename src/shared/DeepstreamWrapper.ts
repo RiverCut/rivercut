@@ -34,7 +34,7 @@ export abstract class DeepstreamWrapper {
     });
   }
 
-  public login(opts: any): Promise<any> {
+  public login(opts?: any): Promise<any> {
     return new Promise((resolve, reject) => {
       this.client.login(opts, (success, data) => {
         this._uid = data.id;

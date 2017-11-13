@@ -1,10 +1,10 @@
 
-import { extend } from 'lodash';
+import { merge } from 'lodash';
 
 export class Model {
 
   public deserializeFrom(opts = {}): void {
-    extend(this, opts);
+    merge(this, opts);
   }
 
 }

@@ -1,6 +1,7 @@
 
 import { DeepstreamWrapper } from '../shared/DeepstreamWrapper';
 import { Subject } from 'rxjs/Subject';
+import { ClientState } from './ClientState';
 
 export class Client extends DeepstreamWrapper {
 
@@ -23,6 +24,10 @@ export class Client extends DeepstreamWrapper {
 
   public leave(roomName: string): Promise<any> {
     return this.emit('rivercut:leave', { room: roomName });
+  }
+
+  public createState(stateProto, opts = {}): ClientState {
+    return new stateProto(this.client, opts);
   }
 
   private listenForMessages() {

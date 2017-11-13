@@ -97,6 +97,8 @@ export abstract class Room<T extends ServerState = ServerState> {
   }
 
   private tick(delta: number) {
+    if(!this.state) return;
+
     this.onTick(delta);
     this.state.tick(delta);
   }
