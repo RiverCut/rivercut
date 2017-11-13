@@ -12,7 +12,6 @@ export class ClientState {
 
   constructor(private ds: deepstreamIO.Client, { statePath }) {
     this.statePath = statePath;
-
     this.watchRecords();
   }
 

@@ -7,6 +7,13 @@ import { find, filter } from 'lodash';
 import { DeepstreamWrapper } from '../shared/DeepstreamWrapper';
 import { Room } from 'server/Room';
 
+export class ServerOpts {
+  roomsPerWorker?: number;
+  resetStatesOnReboot?: boolean;
+  serializeByRoomId?: boolean;
+  namespace?: string;
+}
+
 export class Server extends DeepstreamWrapper {
 
   private roomHash: any = {};
@@ -21,6 +28,7 @@ export class Server extends DeepstreamWrapper {
   public serializeByRoomId: boolean = false;
   public namespace: string = '';
 
+  // TODO allow persistent room ids (probably (room) => id) and figure out how to handle disconnect/reconnect
   /**
    * @param {boolean} resetStatesOnReboot - if true, all states will be cleared on reboot
    * @param {boolean} serializeByRoomId - if true, state will save per room id instead of per room
@@ -33,7 +41,7 @@ export class Server extends DeepstreamWrapper {
       resetStatesOnReboot,
       serializeByRoomId,
       namespace
-    }: any = {}
+    }: ServerOpts = {}
     ) {
       super();
       this.roomsPerWorker = roomsPerWorker || 1;
@@ -48,8 +56,7 @@ export class Server extends DeepstreamWrapper {
     this.serverUUID = uuid();
 
     if(this.resetStatesOnReboot) {
-      const record = this.client.record.getRecord(this.namespace);
-      record.delete();
+      this.client.record.getRecord(this.namespace).delete();
     }
 
     this.watchForBasicEvents();
