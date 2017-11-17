@@ -1,14 +1,15 @@
 
-import { Subject } from 'rxjs/Subject';
-
 import * as Deepstream from 'deepstream.io-client-js';
+
+import { Subject } from 'rxjs/Subject';
+import { BehaviorSubject } from 'rxjs/BehaviorSubject';
 
 export abstract class DeepstreamWrapper {
 
   private _client: deepstreamIO.Client;
   private _uid: string;
 
-  public connectionState$ = new Subject<string>();
+  public connectionState$ = new BehaviorSubject<string>('initialized');
   public error$ = new Subject<any>();
 
   public get uid() {
@@ -40,20 +41,20 @@ export abstract class DeepstreamWrapper {
         this._uid = data.id;
 
         if(success) return resolve(data);
-        return reject();
+        return reject(data);
       });
     });
   }
 
   public emit(name, data): Promise<any> {
     const emitData = {
-      $$userId: this.uid,
       $$action: name,
+      $$userId: this.uid,
       ...data
     };
 
     return new Promise((resolve, reject) => {
-      this.client.rpc.make('useraction', emitData, (error, result) => {
+      this.client.rpc.make(`action/user`, emitData, (error, result) => {
         if(error) return reject(error);
         resolve(result);
       });

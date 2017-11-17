@@ -26,7 +26,7 @@ export class Client extends DeepstreamWrapper {
     return this.emit('rivercut:leave', { room: roomName });
   }
 
-  public createState(stateProto, opts = {}): ClientState {
+  public createState<T extends ClientState>(stateProto, opts = {}): T{
     return new stateProto(this.client, opts);
   }
 
@@ -35,4 +35,23 @@ export class Client extends DeepstreamWrapper {
       this.onData$.next(data);
     });
   }
+
+  public emitFromState(name, data, state: ClientState): Promise<any> {
+    const emitData = {
+      $$action: name,
+      $$userId: this.uid,
+      $$roomId: state.id,
+      $$roomName: state.name,
+      ...data
+    };
+
+    return new Promise((resolve, reject) => {
+      this.client.rpc.make(`action/server/${state.sid}`, emitData, (error, result) => {
+        if(error) return reject(error);
+        resolve(result);
+      });
+    });
+  }
+
+  // TODO make client watch for server disconnect
 }

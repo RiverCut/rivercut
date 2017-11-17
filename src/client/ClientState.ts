@@ -7,11 +7,29 @@ export class ClientState {
   private $$syncModels: { [key: string]: any };
   private recordSubscriptions: { [key: string]: { record, action: Function} } = {};
   private statePath: string;
+  private roomId: string;
+  private roomName: string;
+  private serverId: string;
+
+  public get id(): string {
+    return this.roomId;
+  }
+
+  public get name(): string {
+    return this.roomName;
+  }
+
+  public get sid(): string {
+    return this.serverId;
+  }
 
   public onUpdate$ = new Subject<any>();
 
-  constructor(private ds: deepstreamIO.Client, { statePath }) {
+  constructor(private ds: deepstreamIO.Client, { statePath, roomId, roomName, serverId }) {
     this.statePath = statePath;
+    this.roomId = roomId;
+    this.roomName = roomName;
+    this.serverId = serverId;
     this.watchRecords();
   }
 

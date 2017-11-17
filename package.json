@@ -9,7 +9,9 @@
     "prepare": "npm run build",
     "bump:patch": "npm version patch -m \"Patch release %s\"",
     "bump:minor": "npm version minor -m \"Minor release %s\"",
-    "bump:major": "npm version major -m \"Major release %s\""
+    "bump:major": "npm version major -m \"Major release %s\"",
+    "start:deepstream": "deepstream start --config ./ds.config.yml",
+    "start:authserver": "node ./deepstream/auth.server.js"
   },
   "repository": {
     "type": "git",
@@ -30,7 +32,9 @@
   },
   "devDependencies": {
     "@types/node": "^8.0.50",
+    "body-parser": "^1.18.2",
     "deepstream.io": "^3.1.1",
+    "express": "^4.16.2",
     "typescript": "^2.6.1"
   }
 }

@@ -18,8 +18,8 @@ export abstract class ServerState {
   public get statePath(): string {
     let base = ``;
     if(this.$$serverNamespace)  base = `${this.$$serverNamespace}`;
-    if(this.$$roomId)           base = `${base}/${this.$$roomId}`;
     if(this.$$roomName)         base = `${base}/${this.$$roomName}`;
+    if(this.$$roomId)           base = `${base}/${this.$$roomId}`;
     base = `${base}/state`;
     return base;
   }

@@ -46,31 +46,4 @@ You'll need to generate a token and allow token authentication. The token should
 }
 ```
 
-You'll need to have your deepstream permissions set up differently for this to all work right:
-
-```yml
-presence:
-  "*":
-    allow: true
-record:
-  "*":
-    create: "user.data.hasAuthority"
-    write: "user.data.hasAuthority"
-    read: true
-    delete: "user.data.hasAuthority"
-    listen: true
-event:
-  "*":
-    publish: "user.data.hasAuthority"
-    subscribe: true
-    listen: true
-  "message/$userId":
-    publish: "user.data.hasAuthority"
-    subscribe: "user.id === $userId"
-rpc:
-  "*":
-    provide: "user.data.hasAuthority"
-    request: true
-  "useraction":
-    request: "data.$$userId === user.id" 
-```
+You'll need to have your deepstream permissions set up differently for this to all work right. See [`ds.permissions.yml`](ds.permissions.yml) for what they should look like.

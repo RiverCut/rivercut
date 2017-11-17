@@ -1,5 +1,5 @@
 
-import * as uuid from 'uuid/v4';
+import * as uuid4 from 'uuid/v4';
 import * as uuid5 from 'uuid/v5';
 
 import { find, filter } from 'lodash';
@@ -8,9 +8,10 @@ import { DeepstreamWrapper } from '../shared/DeepstreamWrapper';
 import { Room } from 'server/Room';
 
 export class ServerOpts {
-  roomsPerWorker?: number;
   resetStatesOnReboot?: boolean;
+  deterministicRoomUUID?: boolean;
   serializeByRoomId?: boolean;
+  roomsPerWorker?: number;
   namespace?: string;
 }
 
@@ -19,48 +20,56 @@ export class Server extends DeepstreamWrapper {
   private roomHash: any = {};
   private runningRoomHash: any = {};
   private runningRooms: number = 0;
-  private serverUUID: string;
   private actionCallbacks: { [key: string]: (data: any, response: deepstreamIO.RPCResponse) => any } = {};
   private clientRooms: { [key: string]: Array<{ name: string, id: string }> } = {};
 
-  public roomsPerWorker: number = 1;
   public resetStatesOnReboot: boolean = true;
   public serializeByRoomId: boolean = false;
+  public deterministicRoomUUID: boolean = false;
+  public roomsPerWorker: number = 1;
   public namespace: string = '';
 
   // TODO allow persistent room ids (probably (room) => id) and figure out how to handle disconnect/reconnect
   /**
    * @param {boolean} resetStatesOnReboot - if true, all states will be cleared on reboot
    * @param {boolean} serializeByRoomId - if true, state will save per room id instead of per room
+   * @param {boolean} deterministicRoomUUID - if true, uuid per room will be the same on subsequent generations
    * @param {number} roomsPerWorker - the maximum number of rooms this server will hold
    * @param {string} namespace - if specified, state data will have `namespace` pre-pended
    */
   constructor(
     {
-      roomsPerWorker,
       resetStatesOnReboot,
       serializeByRoomId,
+      deterministicRoomUUID,
+      roomsPerWorker,
       namespace
     }: ServerOpts = {}
     ) {
       super();
-      this.roomsPerWorker = roomsPerWorker || 1;
       this.resetStatesOnReboot = resetStatesOnReboot || false;
       this.serializeByRoomId = serializeByRoomId || false;
+      this.deterministicRoomUUID = deterministicRoomUUID || false;
+      this.roomsPerWorker = roomsPerWorker || 1;
       this.namespace = namespace || '';
     }
 
   public init(url: string, options?: any): void {
     super.init(url, options);
 
-    this.serverUUID = uuid();
-
     if(this.resetStatesOnReboot) {
-      this.client.record.getRecord(this.namespace).delete();
+      const record =  this.client.record.getRecord(this.namespace);
+      record.delete();
     }
 
     this.watchForBasicEvents();
     this.trackPresence();
+  }
+
+  public async login(opts: any): Promise<any> {
+    const res = await super.login(opts);
+    this.watchForAuthenticatedEvents();
+    return res;
   }
 
   public registerRoom(roomName: string, roomProto, opts: any = {}): void {
@@ -76,13 +85,16 @@ export class Server extends DeepstreamWrapper {
 
   private createRoom(roomName: string): Room {
     if(!this.roomHash[roomName]) throw new Error(`Room ${roomName} was not registered on this node.`);
+
     const { roomProto, opts } = this.roomHash[roomName];
 
-    const roomId = uuid5(roomName, this.serverUUID);
+    const roomId = this.deterministicRoomUUID ? uuid5(roomName, this.uid) : uuid4();
 
     const roomOpts = {
       roomId,
       roomName,
+      onEvent: (event, callback) => this.on(event, callback),
+      offEvent: (event, callback) => this.off(event),
       onDispose: () => this.deleteRoom(roomName, roomId),
       serverOpts: {
         $$roomId: this.serializeByRoomId ? roomId : null,
@@ -116,6 +128,7 @@ export class Server extends DeepstreamWrapper {
   }
 
   public off(name): void {
+    if(!this.client) throw new Error('Client not initialized');
     this.client.rpc.unprovide(name);
   }
 
@@ -158,7 +171,7 @@ export class Server extends DeepstreamWrapper {
 
   private watchForBasicEvents(): void {
 
-    this.client.rpc.provide('useraction', async (data, response) => {
+    this.client.rpc.provide('action/user', async (data, response) => {
       const callback = this.actionCallbacks[data.$$action];
       if(!callback) {
         response.error(`Action ${data.$$action} has no registered callback.`);
@@ -188,7 +201,10 @@ export class Server extends DeepstreamWrapper {
 
         const getResponseData = (room) => {
           const resolveData = {
-            statePath: room.state.statePath
+            statePath: room.state.statePath,
+            serverId: this.uid,
+            roomId: room.roomId,
+            roomName: room.roomName
           };
 
           resolve(resolveData);
@@ -256,6 +272,31 @@ export class Server extends DeepstreamWrapper {
       if(!didLeave) return response.error('Could not leave room');
 
       return {};
+    });
+  }
+
+  private watchForAuthenticatedEvents() {
+    this.client.rpc.provide(`action/server/${this.uid}`, async (data, response) => {
+      if(!data.$$roomName || !data.$$roomId) {
+        response.error('Invalid room name or room id');
+        return;
+      }
+
+      if(!this.runningRoomHash[data.$$roomName][data.$$roomId]) {
+        response.error('Invalid room');
+        return;
+      }
+
+      const callback = this.actionCallbacks[`${data.$$roomId}.${data.$$action}`];
+      if(!callback) {
+        response.error(`Action ${data.$$action} has no registered callback for room ${data.$$roomId}.`);
+        return;
+      }
+
+      const result = await callback(data, response);
+      if(!result) return;
+
+      response.send(result);
     });
   }
 

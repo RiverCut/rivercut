@@ -5,7 +5,7 @@ import { clearGameLoop, setGameLoop } from 'node-gameloop';
 
 import { pull, isUndefined, difference } from 'lodash';
 
-export abstract class Room<T extends ServerState = ServerState> {
+export abstract class Room<T extends ServerState = any> {
 
   public state: T;
 
@@ -18,6 +18,8 @@ export abstract class Room<T extends ServerState = ServerState> {
   private gameLoopInterval = 1000 / 30;
   private gameloop: number;
   private disposeServerCallback: Function;
+  private eventListenerCallback: Function;
+  private uneventListenerCallback: Function;
   private roomId: string;
   private roomName: string;
 
@@ -29,10 +31,12 @@ export abstract class Room<T extends ServerState = ServerState> {
     return this.roomName;
   }
 
-  public setup(ds: deepstreamIO.Client, { roomId, roomName, onDispose, serverOpts }) {
+  public setup(ds: deepstreamIO.Client, { roomId, roomName, onDispose, onEvent, offEvent, serverOpts }) {
     this.ds = ds;
     this.roomId = roomId;
     this.roomName = roomName;
+    this.eventListenerCallback = onEvent;
+    this.uneventListenerCallback = offEvent;
     this.disposeServerCallback = onDispose;
     this.serverOpts = serverOpts;
 
@@ -44,7 +48,7 @@ export abstract class Room<T extends ServerState = ServerState> {
     this.restartGameloop();
   }
 
-  public async canJoin(userId: string): Promise<boolean> {
+  public async canJoin(userId?: string): Promise<boolean> {
     return true;
   }
 
@@ -61,6 +65,14 @@ export abstract class Room<T extends ServerState = ServerState> {
   protected abstract onSetup(): void;
   protected abstract onMessage(): void;
   protected abstract onDispose(): void;
+
+  protected on(event: string, callback) {
+    this.eventListenerCallback(`${this.roomId}.${event}`, callback);
+  }
+
+  protected off(event: string) {
+    this.uneventListenerCallback(`${this.roomId}.${event}`);
+  }
 
   public init(): void {
     this.onInit();
@@ -92,8 +104,8 @@ export abstract class Room<T extends ServerState = ServerState> {
   }
 
   private dispose() {
-    this.disposeServerCallback();
     this.onDispose();
+    this.disposeServerCallback();
   }
 
   private tick(delta: number) {

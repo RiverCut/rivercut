@@ -1,0 +1,27 @@
+presence:
+  "*":
+    allow: true
+record:
+  "*":
+    create: "user.data.hasAuthority"
+    write: "user.data.hasAuthority"
+    read: true
+    delete: "user.data.hasAuthority"
+    listen: true
+event:
+  "*":
+    publish: "user.data.hasAuthority"
+    subscribe: true
+    listen: true
+  "message/$userId":
+    publish: "user.data.hasAuthority"
+    subscribe: "user.id === $userId"
+rpc:
+  "*":
+    provide: "user.data.hasAuthority"
+    request: true
+  "action/user":
+    request: "data.$$userId === user.id"
+  "action/server/$serverId":
+    provide: "user.data.hasAuthority && user.id === $serverId"
+    request: "data.$$userId === user.id"

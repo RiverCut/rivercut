@@ -1,0 +1,14 @@
+
+serverName: UUID
+
+auth:
+  type: http
+  options:
+    endpointUrl: http://127.0.0.1:3871/local-deepstream-auth
+    permittedStatusCodes: [200]
+    requestTimeout: 5000
+
+permission:
+  type: config
+  options:
+    path: ./ds.permissions.yml
