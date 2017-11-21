@@ -26,7 +26,7 @@ export class Server extends DeepstreamWrapper {
   public resetStatesOnReboot: boolean = true;
   public serializeByRoomId: boolean = false;
   public deterministicRoomUUID: boolean = false;
-  public roomsPerWorker: number = 1;
+  public roomsPerWorker: number = 0;
   public namespace: string = '';
 
   // TODO allow persistent room ids (probably (room) => id) and figure out how to handle disconnect/reconnect
@@ -34,7 +34,7 @@ export class Server extends DeepstreamWrapper {
    * @param {boolean} resetStatesOnReboot - if true, all states will be cleared on reboot
    * @param {boolean} serializeByRoomId - if true, state will save per room id instead of per room
    * @param {boolean} deterministicRoomUUID - if true, uuid per room will be the same on subsequent generations
-   * @param {number} roomsPerWorker - the maximum number of rooms this server will hold
+   * @param {number} roomsPerWorker - the maximum number of rooms this server will hold (0 for infinite rooms)
    * @param {string} namespace - if specified, state data will have `namespace` pre-pended
    */
   constructor(
@@ -50,7 +50,7 @@ export class Server extends DeepstreamWrapper {
       this.resetStatesOnReboot = resetStatesOnReboot || false;
       this.serializeByRoomId = serializeByRoomId || false;
       this.deterministicRoomUUID = deterministicRoomUUID || false;
-      this.roomsPerWorker = roomsPerWorker || 1;
+      this.roomsPerWorker = roomsPerWorker || 0;
       this.namespace = namespace || '';
     }
 
@@ -132,15 +132,17 @@ export class Server extends DeepstreamWrapper {
     this.client.rpc.unprovide(name);
   }
 
-  private hasRunningRoom(roomName: string): boolean {
-    return this.runningRoomHash[roomName] && Object.keys(this.runningRoomHash[roomName]).length > 0;
+  private hasRunningRoom(roomName: string, roomId?: string): boolean {
+    if(!this.runningRoomHash[roomName]) return false;
+    if(roomId) return this.runningRoomHash[roomName][roomId];
+    return Object.keys(this.runningRoomHash[roomName]).length > 0;
   }
 
   private isFull(): boolean {
-    return this.runningRooms >= this.roomsPerWorker;
+    return this.roomsPerWorker > 0 && this.runningRooms >= this.roomsPerWorker;
   }
 
-  private findRoomToConnectTo(roomName: string, userId: string): Promise<Room> {
+  private findRoomToConnectTo(roomName: string, userId: string, roomId?: string): Promise<Room> {
     return new Promise(async (resolve) => {
       const roomHash = this.runningRoomHash;
       const allRooms = Object.keys(roomHash[roomName]) || [];
@@ -158,6 +160,7 @@ export class Server extends DeepstreamWrapper {
       let chosenRoom = null;
 
       for(const currentRoom of gen) {
+        if(roomId && currentRoom.id !== roomId) continue;
         const canJoin = await currentRoom.canJoin(userId);
         if(canJoin) {
           chosenRoom = currentRoom;
@@ -186,7 +189,7 @@ export class Server extends DeepstreamWrapper {
 
     // TODO make it so single instance rooms can be specified! if so, there should be another RPC here that checks if the room exists anywhere else before creating it
     this.on('rivercut:join', (data, response) => {
-      const { room, $$userId } = data;
+      const { room, $$userId, roomId } = data;
 
       (<any>response).autoAck = false;
 
@@ -218,11 +221,11 @@ export class Server extends DeepstreamWrapper {
 
         if(this.isFull()) {
           // if we don't have a running room, and we're full, there is nowhere to go
-          const hasRunningRoom = this.hasRunningRoom(room);
+          const hasRunningRoom = this.hasRunningRoom(room, roomId);
           if(!hasRunningRoom) return ackAndReject();
 
           // if we don't have a room to connect to, and we're full, there is nowhere to go
-          const roomInst = await this.findRoomToConnectTo(room, $$userId);
+          const roomInst = await this.findRoomToConnectTo(room, $$userId, roomId);
           if(!roomInst) return ackAndReject();
 
           response.ack();
@@ -238,14 +241,14 @@ export class Server extends DeepstreamWrapper {
         let newRoom: Room = null;
 
         // ok, we're not full, so lets see if we have a room anyway
-        const hasRunningRoom = this.hasRunningRoom(room);
-        if(!hasRunningRoom) {
+        const hasRunningRoom = this.hasRunningRoom(room, roomId);
+        if(!hasRunningRoom && !roomId) {
           // create a room, we'll see if we can join it
           newRoom = this.createRoom(room);
         }
 
         // if we don't have a room to connect to, we can make one
-        const roomInst = await this.findRoomToConnectTo(room, $$userId);
+        const roomInst = await this.findRoomToConnectTo(room, $$userId, roomId);
 
         if(!roomInst) {
 

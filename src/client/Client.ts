@@ -18,8 +18,8 @@ export class Client extends DeepstreamWrapper {
     return promise;
   }
 
-  public join(roomName: string): Promise<any> {
-    return this.emit('rivercut:join', { room: roomName });
+  public join(roomName: string, roomId?: string): Promise<any> {
+    return this.emit('rivercut:join', { room: roomName, roomId });
   }
 
   public leave(roomName: string): Promise<any> {
