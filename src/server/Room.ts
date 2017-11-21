@@ -23,6 +23,8 @@ export abstract class Room<T extends ServerState = any> {
   private roomId: string;
   private roomName: string;
 
+  protected roomInfo: deepstreamIO.Record;
+
   public get id(): string {
     return this.roomId;
   }
@@ -40,7 +42,7 @@ export abstract class Room<T extends ServerState = any> {
     this.disposeServerCallback = onDispose;
     this.serverOpts = serverOpts;
 
-    this.onSetup();
+    this.setup();
   }
 
   public setGameLoopInterval(ms: number) {
@@ -103,7 +105,13 @@ export abstract class Room<T extends ServerState = any> {
     if(!this.runWhenEmpty && this.connectedClients.length === 0) this.uninit();
   }
 
+  private setup() {
+    this.roomInfo = this.ds.record(`_roomInfo/${this.roomId}`);
+    this.onSetup();
+  }
+
   private dispose() {
+    this.roomInfo.delete();
     this.onDispose();
     this.disposeServerCallback();
   }
