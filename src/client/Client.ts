@@ -6,9 +6,16 @@ import { ClientState } from './ClientState';
 export class Client extends DeepstreamWrapper {
 
   public onData$ = new Subject<any>();
+  private _roomInfo: deepstreamIO.Record;
+
+  public get roomInfo(): deepstreamIO.Record {
+    return this._roomInfo;
+  }
 
   public init(url: string, options?: any): void {
     super.init(url, options);
+
+    this._roomInfo = this.client.record.getRecord(`_roomInfo`);
   }
 
   public async login(opts: any): Promise<any> {
