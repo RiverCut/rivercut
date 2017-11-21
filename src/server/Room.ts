@@ -42,7 +42,8 @@ export abstract class Room<T extends ServerState = any> {
     this.disposeServerCallback = onDispose;
     this.serverOpts = serverOpts;
 
-    this.setup();
+    this.roomInfo = this.ds.record(`_roomInfo/${this.roomId}`);
+    this.onSetup();
   }
 
   public setGameLoopInterval(ms: number) {
@@ -103,11 +104,6 @@ export abstract class Room<T extends ServerState = any> {
     this.onDisconnect(clientId);
 
     if(!this.runWhenEmpty && this.connectedClients.length === 0) this.uninit();
-  }
-
-  private setup() {
-    this.roomInfo = this.ds.record(`_roomInfo/${this.roomId}`);
-    this.onSetup();
   }
 
   private dispose() {
