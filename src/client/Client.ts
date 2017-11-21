@@ -6,7 +6,9 @@ import { ClientState } from './ClientState';
 export class Client extends DeepstreamWrapper {
 
   public onData$ = new Subject<any>();
+  public onServerDisconnect$ = new Subject<any>();
   private _roomInfo: deepstreamIO.Record;
+  private connectedServers: { [key: string]: number } = {};
 
   public get roomInfo(): deepstreamIO.Record {
     return this._roomInfo;
@@ -16,6 +18,7 @@ export class Client extends DeepstreamWrapper {
     super.init(url, options);
 
     this._roomInfo = this.client.record.getRecord(`_roomInfo`);
+    this.watchServerPresence();
   }
 
   public async login(opts: any): Promise<any> {
@@ -25,12 +28,18 @@ export class Client extends DeepstreamWrapper {
     return promise;
   }
 
-  public join(roomName: string, roomId?: string): Promise<any> {
-    return this.emit('rivercut:join', { room: roomName, roomId });
+  public async join(roomName: string, roomId?: string): Promise<any> {
+    const response = await this.emit('rivercut:join', { room: roomName, roomId });
+    this.connectedServers[response.serverId] = this.connectedServers[response.serverId] || 0;
+    this.connectedServers[response.serverId]++;
+    return response;
   }
 
-  public leave(roomName: string): Promise<any> {
-    return this.emit('rivercut:leave', { room: roomName });
+  public async leave(roomName: string): Promise<any> {
+    const response = await this.emit('rivercut:leave', { room: roomName });
+    this.connectedServers[response.serverId]--;
+    if(this.connectedServers[response.serverId] === 0) delete this.connectedServers[response.serverId];
+    return response;
   }
 
   public createState<T extends ClientState>(stateProto, opts = {}): T{
@@ -60,5 +69,12 @@ export class Client extends DeepstreamWrapper {
     });
   }
 
-  // TODO make client watch for server disconnect
+  private watchServerPresence() {
+    this.client.presence.subscribe((serverId, isOnline) => {
+      if(!isOnline && this.connectedServers[serverId]) {
+        this.onServerDisconnect$.next({ serverId });
+      }
+    });
+  }
+
 }

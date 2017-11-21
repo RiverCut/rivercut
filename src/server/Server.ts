@@ -274,7 +274,7 @@ export class Server extends DeepstreamWrapper {
       const didLeave = this.leaveRoom($$userId, room);
       if(!didLeave) return response.error('Could not leave room');
 
-      return {};
+      return { serverId: this.uid };
     });
   }
 
