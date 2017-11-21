@@ -42,7 +42,7 @@ export abstract class Room<T extends ServerState = any> {
     this.disposeServerCallback = onDispose;
     this.serverOpts = serverOpts;
 
-    this.roomInfo = this.ds.record(`_roomInfo/${this.roomId}`);
+    this.roomInfo = this.ds.record.getRecord(`_roomInfo/${this.roomId}`);
     this.onSetup();
   }
 
