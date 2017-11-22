@@ -1,6 +1,6 @@
 {
   "name": "rivercut",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "A game engine built around deepstream.io",
   "main": "./dist/index.js",
   "typings": "./dist/index.d.ts",
