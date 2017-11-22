@@ -42,6 +42,12 @@ export class Client extends DeepstreamWrapper {
     return response;
   }
 
+  public async leaveAll(): Promise<any> {
+    const response = await this.emit('rivercut:leave-all', {});
+    this.connectedServers = {};
+    return response;
+  }
+
   public createState<T extends ClientState>(stateProto, opts = {}): T{
     return new stateProto(this.client, opts);
   }

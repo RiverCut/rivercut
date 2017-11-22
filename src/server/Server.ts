@@ -298,7 +298,13 @@ export class Server extends DeepstreamWrapper {
       const didLeave = this.leaveRoom($$userId, room);
       if(!didLeave) return response.error('Could not leave room');
 
-      return { serverId: this.uid };
+      return response.send({ serverId: this.uid });
+    });
+
+    this.on('rivercut:leave-all', (data, response) => {
+      const { $$userId } = data;
+      this.leaveAllRooms($$userId);
+      return response.send(true);
     });
   }
 
