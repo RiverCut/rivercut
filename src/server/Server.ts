@@ -5,7 +5,8 @@ import * as uuid5 from 'uuid/v5';
 import { find, filter } from 'lodash';
 
 import { DeepstreamWrapper } from '../shared/DeepstreamWrapper';
-import { Room } from 'server/Room';
+import { Room, RoomOpts } from 'server/Room';
+import { isBoolean } from 'util';
 
 export class ServerOpts {
   resetStatesOnReboot?: boolean;
@@ -72,7 +73,7 @@ export class Server extends DeepstreamWrapper {
     return res;
   }
 
-  public registerRoom(roomName: string, roomProto, opts: any = {}): void {
+  public registerRoom(roomName: string, roomProto, opts: RoomOpts = {}): void {
     if(this.roomHash[roomName]) throw new Error(`Room ${roomName} already registered on this node.`);
 
     this.roomHash[roomName] = { roomProto: roomProto, opts };
@@ -90,6 +91,10 @@ export class Server extends DeepstreamWrapper {
 
     const roomId = this.deterministicRoomUUID ? uuid5(roomName, this.uid) : uuid4();
 
+    // set the state room id to be the room id by default, but if the room wants to override, it can
+    let $$roomId = this.serializeByRoomId ? roomId : null;
+    if(isBoolean(opts.serializeByRoomId) && !opts.serializeByRoomId) $$roomId = null;
+
     const roomOpts = {
       roomId,
       roomName,
@@ -97,7 +102,7 @@ export class Server extends DeepstreamWrapper {
       offEvent: (event, callback) => this.off(event),
       onDispose: () => this.deleteRoom(roomName, roomId),
       serverOpts: {
-        $$roomId: this.serializeByRoomId ? roomId : null,
+        $$roomId,
         $$serverNamespace: this.namespace,
         $$roomName: roomName
       }
@@ -187,7 +192,12 @@ export class Server extends DeepstreamWrapper {
       response.send(result);
     });
 
-    // TODO make it so single instance rooms can be specified! if so, there should be another RPC here that checks if the room exists anywhere else before creating it
+    this.on('rivercut:does-room-exist', (data) => {
+      const { room } = data;
+      if(this.roomHash[room] && Object.keys(this.roomHash[room]).length > 0) return true;
+      return false;
+    });
+
     this.on('rivercut:join', (data, response) => {
       const { room, $$userId, roomId } = data;
 
@@ -243,8 +253,21 @@ export class Server extends DeepstreamWrapper {
         // ok, we're not full, so lets see if we have a room anyway
         const hasRunningRoom = this.hasRunningRoom(room, roomId);
         if(!hasRunningRoom && !roomId) {
-          // create a room, we'll see if we can join it
-          newRoom = this.createRoom(room);
+          // see if we can create the room
+          const { opts } = this.roomHash[room];
+
+          // single instance rooms need to go through a check to first see if they exist
+          if(opts.singleInstance) {
+            const doesRoomExist = await this.emit('rivercut:does-room-exist', { room });
+            if(!doesRoomExist) {
+              newRoom = this.createRoom(room);
+            }
+
+          } else {
+
+            // create a room, we'll see if we can join it
+            newRoom = this.createRoom(room);
+          }
         }
 
         // if we don't have a room to connect to, we can make one

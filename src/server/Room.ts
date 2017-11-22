@@ -5,11 +5,19 @@ import { clearGameLoop, setGameLoop } from 'node-gameloop';
 
 import { pull, isUndefined, difference } from 'lodash';
 
+
+export class RoomOpts {
+  serializeByRoomId?: boolean;
+  singleInstance?: boolean;
+  extra?: any;
+}
+
+
 export abstract class Room<T extends ServerState = any> {
 
   public state: T;
 
-  protected opts: any = {};
+  protected opts: RoomOpts = {};
   protected runWhenEmpty: boolean;
   protected connectedClients: any[] = [];
 
@@ -56,7 +64,7 @@ export abstract class Room<T extends ServerState = any> {
   }
 
   protected setState(state: T): void {
-    this.state = state;
+    this.state = state;7
     this.state.setup(this.ds, this.serverOpts);
   }
 
