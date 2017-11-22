@@ -5,7 +5,7 @@ import * as uuid5 from 'uuid/v5';
 import { find, filter } from 'lodash';
 
 import { DeepstreamWrapper } from '../shared/DeepstreamWrapper';
-import { Room, RoomOpts } from 'server/Room';
+import { Room, RoomOpts } from './Room';
 import { isBoolean } from 'util';
 
 export class ServerOpts {
@@ -194,7 +194,7 @@ export class Server extends DeepstreamWrapper {
 
     this.on('rivercut:does-room-exist', (data, response) => {
       const { room } = data;
-      if(this.roomHash[room] && Object.keys(this.roomHash[room]).length > 0) return response.send(true);
+      if(this.runningRoomHash[room] && Object.keys(this.runningRoomHash[room]).length > 0) return response.send(true);
       return response.send(false);
     });
 
