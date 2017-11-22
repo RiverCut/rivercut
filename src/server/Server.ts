@@ -2,14 +2,14 @@
 import * as uuid4 from 'uuid/v4';
 import * as uuid5 from 'uuid/v5';
 
-import { find, filter } from 'lodash';
+import { find, filter, isArray } from 'lodash';
 
 import { DeepstreamWrapper } from '../shared/DeepstreamWrapper';
 import { Room, RoomOpts } from './Room';
 import { isBoolean } from 'util';
 
 export class ServerOpts {
-  resetStatesOnReboot?: boolean;
+  resetStatesOnReboot?: any; // boolean | string[]
   deterministicRoomUUID?: boolean;
   serializeByRoomId?: boolean;
   roomsPerWorker?: number;
@@ -30,9 +30,8 @@ export class Server extends DeepstreamWrapper {
   public roomsPerWorker: number = 0;
   public namespace: string = '';
 
-  // TODO allow persistent room ids (probably (room) => id) and figure out how to handle disconnect/reconnect
   /**
-   * @param {boolean} resetStatesOnReboot - if true, all states will be cleared on reboot
+   * @param {boolean} resetStatesOnReboot - if true, all states will be cleared on reboot. if string[], only those specific states will be reset
    * @param {boolean} serializeByRoomId - if true, state will save per room id instead of per room
    * @param {boolean} deterministicRoomUUID - if true, uuid per room will be the same on subsequent generations
    * @param {number} roomsPerWorker - the maximum number of rooms this server will hold (0 for infinite rooms)
@@ -59,8 +58,18 @@ export class Server extends DeepstreamWrapper {
     super.init(url, options);
 
     if(this.resetStatesOnReboot) {
-      const record =  this.client.record.getRecord(this.namespace);
-      record.delete();
+
+      if(isArray(this.resetStatesOnReboot)) {
+        this.resetStatesOnReboot.forEach(state => {
+          const record =  this.client.record.getRecord(`${this.namespace}/${state}`);
+          record.delete();
+        });
+
+      } else {
+        const record =  this.client.record.getRecord(this.namespace);
+        record.delete();
+
+      }
     }
 
     this.watchForBasicEvents();
