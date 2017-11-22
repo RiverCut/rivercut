@@ -42,7 +42,7 @@ export abstract class DeepstreamWrapper {
           this._uid = data.id;
           return resolve(data);
         }
-        return reject(data);
+        return reject(data || new Error(`Could not authenticate with options: ${JSON.stringify(opts)}`));
       });
     });
   }
