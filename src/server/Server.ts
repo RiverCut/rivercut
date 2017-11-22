@@ -192,10 +192,10 @@ export class Server extends DeepstreamWrapper {
       response.send(result);
     });
 
-    this.on('rivercut:does-room-exist', (data) => {
+    this.on('rivercut:does-room-exist', (data, response) => {
       const { room } = data;
-      if(this.roomHash[room] && Object.keys(this.roomHash[room]).length > 0) return true;
-      return false;
+      if(this.roomHash[room] && Object.keys(this.roomHash[room]).length > 0) return response.send(true);
+      return response.send(false);
     });
 
     this.on('rivercut:join', (data, response) => {
@@ -258,6 +258,7 @@ export class Server extends DeepstreamWrapper {
 
           // single instance rooms need to go through a check to first see if they exist
           if(opts.singleInstance) {
+            response.ack();
             const doesRoomExist = await this.emit('rivercut:does-room-exist', { room });
             if(!doesRoomExist) {
               newRoom = this.createRoom(room);
