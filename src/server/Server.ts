@@ -24,7 +24,7 @@ export class Server extends DeepstreamWrapper {
   private actionCallbacks: { [key: string]: (data: any, response: deepstreamIO.RPCResponse) => any } = {};
   private clientRooms: { [key: string]: Array<{ name: string, id: string }> } = {};
 
-  public resetStatesOnReboot: boolean = true;
+  public resetStatesOnReboot: any = false;
   public serializeByRoomId: boolean = false;
   public deterministicRoomUUID: boolean = false;
   public roomsPerWorker: number = 0;
