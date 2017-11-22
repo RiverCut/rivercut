@@ -57,6 +57,7 @@ export class ClientState {
       this.recordSubscriptions[key] = { record: baseRecord, action };
 
       baseRecord.subscribe(action, true);
+      action(baseRecord.get());
     });
   }
 
