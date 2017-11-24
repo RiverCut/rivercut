@@ -3,22 +3,25 @@ import { DeepstreamWrapper } from '../shared/DeepstreamWrapper';
 import { Subject } from 'rxjs/Subject';
 import { ClientState } from './ClientState';
 
+import { difference } from 'lodash';
+
 export class Client extends DeepstreamWrapper {
 
   public onData$ = new Subject<any>();
   public onServerDisconnect$ = new Subject<any>();
-  private _roomInfo: deepstreamIO.Record;
+  public onRoomUpdate$ = new Subject<any>();
+  private _roomInfo: any = {};
   private connectedServers: { [key: string]: number } = {};
 
-  public get roomInfo(): deepstreamIO.Record {
+  public get roomInfo(): any {
     return this._roomInfo;
   }
 
   public init(url: string, options?: any): void {
     super.init(url, options);
 
-    this._roomInfo = this.client.record.getRecord(`roomInfo`);
     this.watchServerPresence();
+    this.watchRoomInfo();
   }
 
   public async login(opts: any): Promise<any> {
@@ -81,6 +84,35 @@ export class Client extends DeepstreamWrapper {
         this.onServerDisconnect$.next({ serverId });
       }
     });
+  }
+
+  private watchRoomInfo() {
+
+    const roomRecords = {};
+
+    this.client.record.getRecord(`allRooms`)
+      .subscribe(rooms => {
+        const newKeys = Object.keys(rooms);
+        const oldKeys = Object.keys(roomRecords);
+
+        const newRooms = difference(newKeys, oldKeys);
+        const removeRooms = difference(oldKeys, newKeys);
+
+        newRooms.forEach(newRoom => {
+          roomRecords[newRoom] = this.client.record.getRecord(`roomInfo/${newRoom}`);
+
+          roomRecords[newRoom].subscribe(roomInfo => {
+            this.roomInfo[newRoom] = roomInfo;
+            this.onRoomUpdate$.next({ roomId: newRoom, roomInfo });
+          }, true);
+        });
+
+        removeRooms.forEach(oldRoom => {
+          roomRecords[oldRoom].discard();
+          delete roomRecords[oldRoom];
+        });
+
+      }, true);
   }
 
 }

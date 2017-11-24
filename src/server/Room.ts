@@ -51,6 +51,7 @@ export abstract class Room<T extends ServerState = any> {
     this.disposeServerCallback = onDispose;
     this.serverOpts = serverOpts;
 
+    // add this roomId to roomInfoList
     this.roomInfo = this.ds.record.getRecord(`roomInfo/${this.roomId}`);
     this.onSetup();
   }
@@ -87,6 +88,7 @@ export abstract class Room<T extends ServerState = any> {
   }
 
   public init(): void {
+    this.ds.record.getRecord('roomList').set(this.roomId, true);
     this.onInit();
     this.isStateReady = this.state.init();
     this.restartGameloop();
@@ -94,6 +96,7 @@ export abstract class Room<T extends ServerState = any> {
 
   public uninit(): void {
     if(isUndefined(this.gameloop)) throw new Error('Cannot uninit() a room that has not been created');
+    this.ds.record.getRecord('roomList').set(this.roomId, undefined);
     this.onUninit();
     this.state.uninit();
     delete this.state;

@@ -24,6 +24,7 @@ export class Server extends DeepstreamWrapper {
   private actionCallbacks: { [key: string]: (data: any, response: deepstreamIO.RPCResponse) => any } = {};
   private clientRooms: { [key: string]: Array<{ name: string, id: string }> } = {};
 
+  // TODO resetStatesOnReboot might kill in progress in a multi server setup - should delete only my UUIDs in cleanup
   public resetStatesOnReboot: any = false;
   public serializeByRoomId: boolean = false;
   public deterministicRoomUUID: boolean = false;
@@ -74,6 +75,7 @@ export class Server extends DeepstreamWrapper {
 
     this.watchForBasicEvents();
     this.trackPresence();
+    this.setupCleanup();
   }
 
   public async login(opts: any): Promise<any> {
@@ -379,7 +381,7 @@ export class Server extends DeepstreamWrapper {
     return didLeave;
   }
 
-  private leaveAllRooms(clientId: string) {
+  private leaveAllRooms(clientId: string): void {
     if(!this.clientRooms[clientId]) return;
 
     this.clientRooms[clientId].forEach(({ name, id }) => {
@@ -388,5 +390,20 @@ export class Server extends DeepstreamWrapper {
     });
 
     delete this.clientRooms[clientId];
+  }
+
+  private setupCleanup(): void {
+    const callback = () => {
+      Object.keys(this.runningRoomHash).forEach(roomName => {
+        Object.keys(this.runningRoomHash[roomName]).forEach(roomId => {
+          this.runningRoomHash[roomName][roomId].uninit();
+        });
+      });
+    };
+
+    process.on('exit', () => callback());
+    process.on('SIGINT', () => callback());
+    process.on('SIGUSR1', () => callback());
+    process.on('SIGUSR2', () => callback());
   }
 }
