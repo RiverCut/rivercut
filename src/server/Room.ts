@@ -30,8 +30,7 @@ export abstract class Room<T extends ServerState = any> {
   private uneventListenerCallback: Function;
   private roomId: string;
   private roomName: string;
-
-  protected roomInfo: deepstreamIO.Record;
+  private roomInfo: deepstreamIO.Record;
 
   public get id(): string {
     return this.roomId;
@@ -142,5 +141,9 @@ export abstract class Room<T extends ServerState = any> {
   public broadcast(message: Object, exclude: string[] = []): void {
     const recipients = difference(this.connectedClients, exclude);
     recipients.forEach(client => this.sendMessage(client, message));
+  }
+
+  protected updateRoomInfo(obj: any) {
+    this.roomInfo.set(obj);
   }
 }
