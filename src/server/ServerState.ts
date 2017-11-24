@@ -42,7 +42,7 @@ export abstract class ServerState {
     this.sync();
   }
 
-  public init(): void {
+  public async init(): Promise<any> {
     const syncKeys = get(this, '$$syncKeys', []);
 
     const syncPromises = syncKeys.map(key => {
@@ -71,10 +71,11 @@ export abstract class ServerState {
       });
     });
 
-    Promise.all(syncPromises)
+    return Promise.all(syncPromises)
       .then(() => {
         this.canSync = true;
         this.onInit();
+        return true;
       });
 
   };

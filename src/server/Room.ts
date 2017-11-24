@@ -32,6 +32,8 @@ export abstract class Room<T extends ServerState = any> {
   private roomName: string;
   private roomInfo: deepstreamIO.Record;
 
+  private isStateReady: Promise<any>;
+
   public get id(): string {
     return this.roomId;
   }
@@ -63,7 +65,7 @@ export abstract class Room<T extends ServerState = any> {
   }
 
   protected setState(state: T): void {
-    this.state = state;7
+    this.state = state;
     this.state.setup(this.ds, this.serverOpts);
   }
 
@@ -86,7 +88,7 @@ export abstract class Room<T extends ServerState = any> {
 
   public init(): void {
     this.onInit();
-    this.state.init();
+    this.isStateReady = this.state.init();
     this.restartGameloop();
   }
 
@@ -100,8 +102,10 @@ export abstract class Room<T extends ServerState = any> {
     this.dispose();
   }
 
-  public connect(clientId: string) {
+  public async connect(clientId: string) {
     this.connectedClients.push(clientId);
+
+    await this.isStateReady;
     this.onConnect(clientId);
   }
 
