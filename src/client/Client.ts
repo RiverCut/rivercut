@@ -17,7 +17,7 @@ export class Client extends DeepstreamWrapper {
   public init(url: string, options?: any): void {
     super.init(url, options);
 
-    this._roomInfo = this.client.record.getRecord(`_roomInfo`);
+    this._roomInfo = this.client.record.getRecord(`roomInfo`);
     this.watchServerPresence();
   }
 
