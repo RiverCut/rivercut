@@ -20,8 +20,8 @@ export abstract class Room<T extends ServerState = any> {
   protected opts: RoomOpts = {};
   protected runWhenEmpty: boolean;
   protected connectedClients: any[] = [];
+  protected ds: deepstreamIO.Client;
 
-  private ds: deepstreamIO.Client;
   private serverOpts: any = {};
   private gameLoopInterval = 1000 / 30;
   private gameloop: number;
