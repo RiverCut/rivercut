@@ -244,6 +244,10 @@ export class Server extends DeepstreamWrapper {
           resolve(null);
         };
 
+        if(createNewRoom && this.isFull()) {
+          return ackAndReject();
+        }
+
         if(!createNewRoom && this.isFull()) {
           // if we don't have a running room, and we're full, there is nowhere to go
           const hasRunningRoom = this.hasRunningRoom(room, roomId);
