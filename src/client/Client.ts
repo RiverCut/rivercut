@@ -31,8 +31,10 @@ export class Client extends DeepstreamWrapper {
     return promise;
   }
 
-  public async join(roomName: string, roomId?: string): Promise<any> {
-    const response = await this.emit('rivercut:join', { room: roomName, roomId });
+  public async join(roomName: string, roomId?: string, opts: any = {}): Promise<any> {
+    opts.room = roomName;
+    opts.roomId = roomId;
+    const response = await this.emit('rivercut:join', opts);
     this.connectedServers[response.serverId] = this.connectedServers[response.serverId] || 0;
     this.connectedServers[response.serverId]++;
     return response;

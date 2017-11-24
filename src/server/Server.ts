@@ -210,7 +210,7 @@ export class Server extends DeepstreamWrapper {
     });
 
     this.on('rivercut:join', (data, response) => {
-      const { room, $$userId, roomId } = data;
+      const { room, $$userId, roomId, createNewRoom } = data;
 
       (<any>response).autoAck = false;
 
@@ -240,7 +240,7 @@ export class Server extends DeepstreamWrapper {
           resolve(null);
         };
 
-        if(this.isFull()) {
+        if(!createNewRoom && this.isFull()) {
           // if we don't have a running room, and we're full, there is nowhere to go
           const hasRunningRoom = this.hasRunningRoom(room, roomId);
           if(!hasRunningRoom) return ackAndReject();
@@ -263,7 +263,7 @@ export class Server extends DeepstreamWrapper {
 
         // ok, we're not full, so lets see if we have a room anyway
         const hasRunningRoom = this.hasRunningRoom(room, roomId);
-        if(!hasRunningRoom && !roomId) {
+        if(createNewRoom || (!hasRunningRoom && !roomId)) {
           // see if we can create the room
           const { opts } = this.roomHash[room];
 
