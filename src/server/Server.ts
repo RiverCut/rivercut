@@ -24,6 +24,7 @@ export class Server extends DeepstreamWrapper {
   private actionCallbacks: { [key: string]: (data: any, response: deepstreamIO.RPCResponse) => any } = {};
   private clientRooms: { [key: string]: Array<{ name: string, id: string }> } = {};
 
+  // TODO killing all room info on reboot will do the same thing
   // TODO resetStatesOnReboot might kill in progress in a multi server setup - should delete only my UUIDs in cleanup
   public resetStatesOnReboot: any = false;
   public serializeByRoomId: boolean = false;
@@ -72,6 +73,9 @@ export class Server extends DeepstreamWrapper {
 
       }
     }
+
+    this.client.record.getRecord('roomInfo').delete();
+    this.client.record.getRecord('roomList').delete();
 
     this.watchForBasicEvents();
     this.trackPresence();
