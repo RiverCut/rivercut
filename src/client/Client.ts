@@ -90,7 +90,7 @@ export class Client extends DeepstreamWrapper {
 
     const roomRecords = {};
 
-    this.client.record.getRecord(`allRooms`)
+    this.client.record.getRecord(`roomList`)
       .subscribe(rooms => {
         const newKeys = Object.keys(rooms);
         const oldKeys = Object.keys(roomRecords);
