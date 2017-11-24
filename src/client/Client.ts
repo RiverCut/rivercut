@@ -111,6 +111,7 @@ export class Client extends DeepstreamWrapper {
           roomRecords[oldRoom].discard();
           delete roomRecords[oldRoom];
           delete this.roomInfo[oldRoom];
+          this.onRoomUpdate$.next({ roomId: oldRoom, roomInfo: {} });
         });
 
       }, true);
