@@ -406,6 +406,7 @@ export class Server extends DeepstreamWrapper {
     delete this.clientRooms[clientId];
   }
 
+  // TODO this probably doesn't even do anything
   private setupCleanup(): void {
     const callback = () => {
       Object.keys(this.runningRoomHash).forEach(roomName => {
