@@ -110,6 +110,7 @@ export class Client extends DeepstreamWrapper {
         removeRooms.forEach(oldRoom => {
           roomRecords[oldRoom].discard();
           delete roomRecords[oldRoom];
+          delete this.roomInfo[oldRoom];
         });
 
       }, true);
