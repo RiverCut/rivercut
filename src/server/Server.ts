@@ -216,6 +216,8 @@ export class Server extends DeepstreamWrapper {
     this.on('rivercut:join', (data, response) => {
       const { room, $$userId, roomId, createNewRoom } = data;
 
+      let joinRoomId = roomId;
+
       (<any>response).autoAck = false;
 
       return new Promise(async (resolve) => {
@@ -250,11 +252,11 @@ export class Server extends DeepstreamWrapper {
 
         if(!createNewRoom && this.isFull()) {
           // if we don't have a running room, and we're full, there is nowhere to go
-          const hasRunningRoom = this.hasRunningRoom(room, roomId);
+          const hasRunningRoom = this.hasRunningRoom(room, joinRoomId);
           if(!hasRunningRoom) return ackAndReject();
 
           // if we don't have a room to connect to, and we're full, there is nowhere to go
-          const roomInst = await this.findRoomToConnectTo(room, $$userId, roomId);
+          const roomInst = await this.findRoomToConnectTo(room, $$userId, joinRoomId);
           if(!roomInst) return ackAndReject();
 
           response.ack();
@@ -270,8 +272,8 @@ export class Server extends DeepstreamWrapper {
         let newRoom: Room = null;
 
         // ok, we're not full, so lets see if we have a room anyway
-        const hasRunningRoom = this.hasRunningRoom(room, roomId);
-        if(createNewRoom || (!hasRunningRoom && !roomId)) {
+        const hasRunningRoom = this.hasRunningRoom(room, joinRoomId);
+        if(createNewRoom || (!hasRunningRoom && !joinRoomId)) {
           // see if we can create the room
           const { opts } = this.roomHash[room];
 
@@ -288,10 +290,14 @@ export class Server extends DeepstreamWrapper {
             // create a room, we'll see if we can join it
             newRoom = this.createRoom(room);
           }
+
+          if(createNewRoom && newRoom) {
+            joinRoomId = newRoom.id;
+          }
         }
 
         // if we don't have a room to connect to, we can make one
-        const roomInst = await this.findRoomToConnectTo(room, $$userId, roomId);
+        const roomInst = await this.findRoomToConnectTo(room, $$userId, joinRoomId);
 
         if(!roomInst) {
 
