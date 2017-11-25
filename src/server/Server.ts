@@ -63,19 +63,17 @@ export class Server extends DeepstreamWrapper {
 
       if(isArray(this.resetStatesOnReboot)) {
         this.resetStatesOnReboot.forEach(state => {
-          const record =  this.client.record.getRecord(`${this.namespace}/${state}`);
-          record.delete();
+          this.client.record.getRecord(`${this.namespace}/${state}`).set({});
         });
 
       } else {
-        const record =  this.client.record.getRecord(this.namespace);
-        record.delete();
+        this.client.record.getRecord(this.namespace).set({});
 
       }
     }
 
-    this.client.record.getRecord('roomInfo').delete();
-    this.client.record.getRecord('roomList').delete();
+    this.client.record.getRecord('roomInfo').set({});
+    this.client.record.getRecord('roomList').set({});
 
     this.watchForBasicEvents();
     this.trackPresence();
