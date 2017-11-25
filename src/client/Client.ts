@@ -63,7 +63,7 @@ export class Client extends DeepstreamWrapper {
     });
   }
 
-  public emitFromState(name, data, state: ClientState): Promise<any> {
+  public emitFromState(name, data = {}, state: ClientState): Promise<any> {
     const emitData = {
       $$action: name,
       $$userId: this.uid,
