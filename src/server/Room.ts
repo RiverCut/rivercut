@@ -25,6 +25,7 @@ export abstract class Room<T extends ServerState = any> {
   private serverOpts: any = {};
   private gameLoopInterval = 1000 / 30;
   private gameloop: number;
+  private disconnectServerCallback: Function;
   private disposeServerCallback: Function;
   private eventListenerCallback: Function;
   private uneventListenerCallback: Function;
@@ -42,12 +43,13 @@ export abstract class Room<T extends ServerState = any> {
     return this.roomName;
   }
 
-  public setup(ds: deepstreamIO.Client, { roomId, roomName, onDispose, onEvent, offEvent, serverOpts }) {
+  public setup(ds: deepstreamIO.Client, { roomId, roomName, onDisconnect, onDispose, onEvent, offEvent, serverOpts }) {
     this.ds = ds;
     this.roomId = roomId;
     this.roomName = roomName;
     this.eventListenerCallback = onEvent;
     this.uneventListenerCallback = offEvent;
+    this.disconnectServerCallback = onDisconnect;
     this.disposeServerCallback = onDispose;
     this.serverOpts = serverOpts;
 
@@ -96,7 +98,7 @@ export abstract class Room<T extends ServerState = any> {
 
   public uninit(): void {
     if(isUndefined(this.gameloop)) throw new Error('Cannot uninit() a room that has not been created');
-    this.connectedClients.forEach(client => this.disconnect(client));
+    this.connectedClients.forEach(client => this.forciblyDisconnect(client));
     this.ds.record.getRecord('roomList').set(this.roomId, undefined);
     this.onUninit();
     this.state.uninit();
@@ -119,6 +121,10 @@ export abstract class Room<T extends ServerState = any> {
     this.onDisconnect(clientId);
 
     if(!this.runWhenEmpty && this.connectedClients.length === 0) this.uninit();
+  }
+
+  public forciblyDisconnect(clientId: string) {
+    this.disconnectServerCallback(clientId);
   }
 
   private dispose() {

@@ -114,6 +114,7 @@ export class Server extends DeepstreamWrapper {
       onEvent: (event, callback) => this.on(event, callback),
       offEvent: (event, callback) => this.off(event),
       onDispose: () => this.deleteRoom(roomName, roomId),
+      onDisconnect: (clientId) => this.leaveRoom(clientId, roomName),
       serverOpts: {
         $$roomId,
         $$serverNamespace: this.namespace,
