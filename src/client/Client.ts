@@ -48,8 +48,8 @@ export class Client extends DeepstreamWrapper {
   }
 
   public async leaveAll(): Promise<any> {
-    const response = await this.emit('rivercut:leave-all', {});
     this.connectedServers = {};
+    const response = await this.emit('rivercut:leave-all', {});
     return response;
   }
 
