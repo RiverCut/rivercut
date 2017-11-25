@@ -47,6 +47,10 @@ export abstract class DeepstreamWrapper {
     });
   }
 
+  public close(): void {
+    this.client.close();
+  }
+
   public emit(name, data): Promise<any> {
     const emitData = {
       $$action: name,
