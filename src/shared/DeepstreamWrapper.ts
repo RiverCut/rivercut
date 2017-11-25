@@ -49,6 +49,8 @@ export abstract class DeepstreamWrapper {
 
   public close(): void {
     this.client.close();
+    delete this._client;
+    delete this._uid;
   }
 
   public emit(name, data): Promise<any> {
