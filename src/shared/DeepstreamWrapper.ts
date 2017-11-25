@@ -62,7 +62,10 @@ export abstract class DeepstreamWrapper {
 
     return new Promise((resolve, reject) => {
       this.client.rpc.make(`action/user`, emitData, (error, result) => {
-        if(error) return reject(error);
+        if(error) {
+          error = `${error} (${name} -> ${JSON.stringify(emitData)})`;
+          return reject(error);
+        }
         resolve(result);
       });
     });
