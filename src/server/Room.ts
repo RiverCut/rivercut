@@ -96,6 +96,7 @@ export abstract class Room<T extends ServerState = any> {
 
   public uninit(): void {
     if(isUndefined(this.gameloop)) throw new Error('Cannot uninit() a room that has not been created');
+    this.connectedClients.forEach(client => this.disconnect(client));
     this.ds.record.getRecord('roomList').set(this.roomId, undefined);
     this.onUninit();
     this.state.uninit();
