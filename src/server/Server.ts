@@ -158,7 +158,7 @@ export class Server extends DeepstreamWrapper {
 
   public off(name): void {
     if(!this.client) throw new Error('Client not initialized');
-    this.client.rpc.unprovide(name);
+    delete this.actionCallbacks[name];
   }
 
   private hasRunningRoom(roomName: string, roomId?: string): boolean {
@@ -212,7 +212,7 @@ export class Server extends DeepstreamWrapper {
 
       const result = await callback(data, response);
 
-      if(!result) return;
+      if(!result) return response.send({ noResult: true });
       response.send(result);
     });
 
@@ -361,7 +361,7 @@ export class Server extends DeepstreamWrapper {
       }
 
       const result = await callback(data, response);
-      if(!result) return;
+      if(!result) return response.send({ noResult: true });
 
       response.send(result);
     });
