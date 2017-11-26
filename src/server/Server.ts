@@ -212,14 +212,15 @@ export class Server extends DeepstreamWrapper {
 
       const result = await callback(data, response);
 
-      if(!isUndefined(result) && !(<any>response)._isComplete) return response.send({ noResult: true });
-      response.send(result);
+      if(!(<any>response)._isComplete) {
+        if(isUndefined(result)) return response.send({ noResult: true });
+        response.send(result);
+      }
     });
 
-    this.on('rivercut:does-room-exist', (data, response) => {
+    this.on('rivercut:does-room-exist', async (data) => {
       const { room } = data;
-      if(this.runningRoomHash[room] && Object.keys(this.runningRoomHash[room]).length > 0) return response.send(true);
-      return response.send(false);
+      return this.runningRoomHash[room] && Object.keys(this.runningRoomHash[room]).length > 0;
     });
 
     this.on('rivercut:join', (data, response) => {
@@ -326,19 +327,18 @@ export class Server extends DeepstreamWrapper {
       })
     });
 
-    this.on('rivercut:leave', (data, response) => {
+    this.on('rivercut:leave', async (data, response) => {
       const { $$userId, room } = data;
 
       const didLeave = this.leaveRoom($$userId, room);
       if(!didLeave) return response.error('Could not leave room');
 
-      return response.send({ serverId: this.uid });
+      return { serverId: this.uid };
     });
 
-    this.on('rivercut:leave-all', (data, response) => {
+    this.on('rivercut:leave-all', (data) => {
       const { $$userId } = data;
       this.leaveAllRooms($$userId);
-      return response.send(true);
     });
   }
 
@@ -361,9 +361,11 @@ export class Server extends DeepstreamWrapper {
       }
 
       const result = await callback(data, response);
-      if(!isUndefined(result) && !(<any>response)._isComplete) return response.send({ noResult: true });
 
-      response.send(result);
+      if(!(<any>response)._isComplete) {
+        if(isUndefined(result)) return response.send({ noResult: true });
+        response.send(result);
+      }
     });
   }
 
