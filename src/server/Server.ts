@@ -47,14 +47,14 @@ export class Server extends DeepstreamWrapper {
       roomsPerWorker,
       namespace
     }: ServerOpts = {}
-    ) {
-      super();
-      this.resetStatesOnReboot = resetStatesOnReboot || false;
-      this.serializeByRoomId = serializeByRoomId || false;
-      this.deterministicRoomUUID = deterministicRoomUUID || false;
-      this.roomsPerWorker = roomsPerWorker || 0;
-      this.namespace = namespace || '';
-    }
+  ) {
+    super();
+    this.resetStatesOnReboot = resetStatesOnReboot || false;
+    this.serializeByRoomId = serializeByRoomId || false;
+    this.deterministicRoomUUID = deterministicRoomUUID || false;
+    this.roomsPerWorker = roomsPerWorker || 0;
+    this.namespace = namespace || '';
+  }
 
   public init(url: string, options?: any): void {
     super.init(url, options);
@@ -86,12 +86,22 @@ export class Server extends DeepstreamWrapper {
     return res;
   }
 
+  /**
+   * Register a room named `roomName` and assign it the class prototype `roomProto`.
+   * @param {string} roomName
+   * @param roomProto
+   * @param {RoomOpts} opts
+   */
   public registerRoom(roomName: string, roomProto, opts: RoomOpts = {}): void {
     if(this.roomHash[roomName]) throw new Error(`Room ${roomName} already registered on this node.`);
 
     this.roomHash[roomName] = { roomProto: roomProto, opts };
   }
 
+  /**
+   * Unregister `roomName`.
+   * @param {string} roomName
+   */
   public unregisterRoom(roomName: string): void {
     if(!this.roomHash[roomName]) throw new Error(`Room ${roomName} is not registered on this node.`);
     delete this.roomHash[roomName];
