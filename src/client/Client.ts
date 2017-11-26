@@ -7,7 +7,7 @@ import { difference } from 'lodash';
 
 export class Client extends DeepstreamWrapper {
 
-  public onData$ = new Subject<any>();
+  public onMessage$ = new Subject<any>();
   public onServerDisconnect$ = new Subject<any>();
   public onRoomUpdate$ = new Subject<any>();
   private _roomInfo: any = {};
@@ -59,7 +59,7 @@ export class Client extends DeepstreamWrapper {
 
   private listenForMessages() {
     this.client.event.subscribe(`message/${this.uid}`, (data) => {
-      this.onData$.next(data);
+      this.onMessage$.next(data);
     });
   }
 
