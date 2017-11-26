@@ -212,7 +212,7 @@ export class Server extends DeepstreamWrapper {
 
       const result = await callback(data, response);
 
-      if(isUndefined(result)) return response.send({ noResult: true });
+      if(!(<any>response)._isComplete) return response.send({ noResult: true });
       response.send(result);
     });
 
