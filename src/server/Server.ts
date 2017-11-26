@@ -174,7 +174,7 @@ export class Server extends DeepstreamWrapper {
   private findRoomToConnectTo(roomName: string, userId: string, roomId?: string): Promise<Room> {
     return new Promise(async (resolve) => {
       const roomHash = this.runningRoomHash;
-      const allRooms = Object.keys(roomHash[roomName]) || [];
+      const allRooms = Object.keys(roomHash[roomName] || {}) || [];
 
       if(!allRooms.length) return resolve(null);
 
@@ -218,9 +218,9 @@ export class Server extends DeepstreamWrapper {
       }
     });
 
-    this.on('rivercut:does-room-exist', async (data) => {
+    this.on('rivercut:does-room-exist', (data) => {
       const { room } = data;
-      return this.runningRoomHash[room] && Object.keys(this.runningRoomHash[room]).length > 0;
+      return !!(this.runningRoomHash[room] && Object.keys(this.runningRoomHash[room]).length > 0);
     });
 
     this.on('rivercut:join', (data, response) => {
