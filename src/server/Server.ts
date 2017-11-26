@@ -2,7 +2,7 @@
 import * as uuid4 from 'uuid/v4';
 import * as uuid5 from 'uuid/v5';
 
-import { find, filter, isArray, isUndefined } from 'lodash';
+import { find, filter, isArray } from 'lodash';
 
 import { DeepstreamWrapper } from '../shared/DeepstreamWrapper';
 import { Room, RoomOpts } from './Room';
@@ -361,7 +361,7 @@ export class Server extends DeepstreamWrapper {
       }
 
       const result = await callback(data, response);
-      if(!result) return response.send({ noResult: true });
+      if(!(<any>response)._isComplete) return response.send({ noResult: true });
 
       response.send(result);
     });
