@@ -150,7 +150,7 @@ export class Server extends DeepstreamWrapper {
     this.runningRoomHash[roomName][roomId] = roomInst;
 
     if(opts.singleInstance) {
-
+      this.client.record.getRecord(DS_SINGLE_INSTANCE_KEY).set(roomName, this.uid);
     }
 
     return roomInst;
@@ -308,6 +308,8 @@ export class Server extends DeepstreamWrapper {
             const doesRoomExist = this.existingSingleInstances[room];
             if(!doesRoomExist) {
               newRoom = this.createRoom(room);
+            } else {
+              return ackAndReject();
             }
 
           } else {
@@ -433,9 +435,8 @@ export class Server extends DeepstreamWrapper {
   }
 
   private watchSingleInstanceRooms() {
-    this.client.record.getRecord(DS_SINGLE_INSTANCE_KEY).subscribe(record => {
-      console.log(record.get());
-      this.existingSingleInstances = record.get();
+    this.client.record.getRecord(DS_SINGLE_INSTANCE_KEY).subscribe(data => {
+      this.existingSingleInstances = data;
     });
   }
 
