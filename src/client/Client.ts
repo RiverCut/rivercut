@@ -64,6 +64,8 @@ export class Client extends DeepstreamWrapper {
   }
 
   public emitFromState(name, data = {}, state: ClientState): Promise<any> {
+    if(!state) return Promise.reject(new Error('Error: No state to emit from.'));
+
     const emitData = {
       $$action: name,
       $$userId: this.uid,
