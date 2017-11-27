@@ -8,6 +8,10 @@ import { DeepstreamWrapper } from '../shared/DeepstreamWrapper';
 import { Room, RoomOpts } from './Room';
 import { isBoolean } from 'util';
 
+const DS_ROOMINFO_KEY = 'roomInfo';
+const DS_ROOMLIST_KEY = 'roomList';
+const DS_SINGLE_INSTANCE_KEY = 'roomSingleInstance';
+
 export class ServerOpts {
   resetStatesOnReboot?: any; // boolean | string[]
   deterministicRoomUUID?: boolean;
@@ -23,6 +27,8 @@ export class Server extends DeepstreamWrapper {
   private runningRooms: number = 0;
   private actionCallbacks: { [key: string]: (data: any, response: deepstreamIO.RPCResponse) => any } = {};
   private clientRooms: { [key: string]: Array<{ name: string, id: string }> } = {};
+
+  private existingSingleInstances = {};
 
   // TODO killing all room info on reboot will do the same thing
   // TODO resetStatesOnReboot might kill in progress in a multi server setup - should delete only my UUIDs in cleanup
@@ -72,9 +78,11 @@ export class Server extends DeepstreamWrapper {
       }
     }
 
-    this.client.record.getRecord('roomInfo').set({});
-    this.client.record.getRecord('roomList').set({});
+    this.client.record.getRecord(DS_ROOMINFO_KEY).set({});
+    this.client.record.getRecord(DS_ROOMLIST_KEY).set({});
+    this.client.record.getRecord(DS_SINGLE_INSTANCE_KEY).set({});
 
+    this.watchSingleInstanceRooms();
     this.watchForBasicEvents();
     this.trackPresence();
     this.setupCleanup();
@@ -141,6 +149,10 @@ export class Server extends DeepstreamWrapper {
     this.runningRoomHash[roomName] = this.runningRoomHash[roomName] || {};
     this.runningRoomHash[roomName][roomId] = roomInst;
 
+    if(opts.singleInstance) {
+
+    }
+
     return roomInst;
   }
 
@@ -149,6 +161,15 @@ export class Server extends DeepstreamWrapper {
 
     this.runningRooms--;
     delete this.runningRoomHash[roomName][roomId];
+
+    if(Object.keys(this.runningRoomHash[roomName]).length === 0) {
+      delete this.runningRoomHash[roomName];
+
+      const { opts } = this.roomHash[roomName];
+      if(opts.singleInstance) {
+        this.client.record.getRecord(DS_SINGLE_INSTANCE_KEY).set(roomName, undefined);
+      }
+    }
   }
 
   public on(name: string, callback: (data: any, response: deepstreamIO.RPCResponse) => any): void {
@@ -218,11 +239,6 @@ export class Server extends DeepstreamWrapper {
       }
     });
 
-    this.on('rivercut:does-room-exist', (data) => {
-      const { room } = data;
-      return !!(this.runningRoomHash[room] && Object.keys(this.runningRoomHash[room]).length > 0);
-    });
-
     this.on('rivercut:join', (data, response) => {
       const { room, $$userId, roomId, createNewRoom } = data;
 
@@ -289,8 +305,7 @@ export class Server extends DeepstreamWrapper {
 
           // single instance rooms need to go through a check to first see if they exist
           if(opts.singleInstance) {
-            response.ack();
-            const doesRoomExist = await this.emit('rivercut:does-room-exist', { room });
+            const doesRoomExist = this.existingSingleInstances[room];
             if(!doesRoomExist) {
               newRoom = this.createRoom(room);
             }
@@ -415,6 +430,13 @@ export class Server extends DeepstreamWrapper {
     });
 
     delete this.clientRooms[clientId];
+  }
+
+  private watchSingleInstanceRooms() {
+    this.client.record.getRecord(DS_SINGLE_INSTANCE_KEY).subscribe(record => {
+      console.log(record.get());
+      this.existingSingleInstances = record.get();
+    });
   }
 
   // TODO this probably doesn't even do anything
